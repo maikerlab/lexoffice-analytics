@@ -1,0 +1,507 @@
+openapi: "3.0.2"
+info:
+  title: lexoffice Public API
+  version: "1.0"
+servers:
+  - url: https://api.lexoffice.io/v1
+security:
+  - ApiKeyAuth: []
+paths:
+  /voucherlist:
+    get:
+      parameters:
+        - in: query
+          name: voucherType
+          schema:
+            type: string
+            enum:
+              - any
+              - salesinvoice
+              - salescreditnote
+              - purchaseinvoice
+              - purchasecreditnote
+              - invoice
+              - downpaymentinvoice
+              - creditnote
+              - orderconfirmation
+              - quotation
+              - deliverynote
+          required: true
+        - in: query
+          name: voucherStatus
+          schema:
+            type: string
+            enum:
+              - any
+              - draft
+              - open
+              - paid
+              - paidoff
+              - voided
+              - transferred
+              - sepadebit
+              - overdue
+              - accepted
+              - rejected
+          required: true
+        - in: query
+          name: archived
+          schema:
+            type: boolean
+        - in: query
+          name: contactId
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: voucherDateFrom
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: voucherDateTo
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: createdDateFrom
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: createdDateTo
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: updatedDateFrom
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: updatedDateTo
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: voucherNumber
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 0
+        - in: query
+          name: size
+          schema:
+            type: integer
+            default: 25
+            maximum: 250
+        - in: query
+          name: sort
+          schema:
+            type: string
+            enum:
+              - voucherDate
+              - voucherDate,ASC
+              - voucherDate,DESC
+              - voucherNumber
+              - voucherNumber,ASC
+              - voucherNumber,DESC
+              - createdDate
+              - createdDate,ASC
+              - createdDate,DESC
+              - updatedDate
+              - updatedDate,ASC
+              - updatedDate,DESC
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VoucherList"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMsg"
+              example:
+                message: Unauthorized
+  /invoices/{id}:
+    get:
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorMsg"
+              example:
+                message: Unauthorized
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: string
+  schemas:
+    VoucherList:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: "#/components/schemas/Voucher"
+        first:
+          type: boolean
+        last:
+          type: boolean
+        totalPages:
+          type: integer
+        totalElements:
+          type: integer
+        numberOfElements:
+          type: integer
+        size:
+          type: integer
+        number:
+          type: integer
+        sort:
+          type: array
+          items:
+            $ref: "#/components/schemas/SortProperties"
+    Voucher:
+      required:
+        - voucherType
+        - voucherStatus
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        voucherType:
+          type: string
+          description: Voucher Type
+          enum:
+            - salesinvoice
+            - salescreditnote
+            - purchaseinvoice
+            - purchasecreditnote
+            - invoice
+            - downpaymentinvoice
+            - creditnote
+            - orderconfirmation
+            - quotation
+            - deliverynote
+        voucherStatus:
+          type: string
+          description: Status
+          enum:
+            - draft
+            - open
+            - paid
+            - paidoff
+            - voided
+            - transferred
+            - sepadebit
+            - overdue
+            - accepted
+            - rejected
+        voucherNumber:
+          type: string
+        voucherDate:
+          type: string
+          format: date-time
+        createdDate:
+          type: string
+          format: date-time
+        updatedDate:
+          type: string
+          format: date-time
+        dueDate:
+          type: string
+          format: date-time
+        contactId:
+          type: string
+          format: uuid
+        contactName:
+          type: string
+        totalAmount:
+          type: number
+        openAmount:
+          type: number
+        currency:
+          type: string
+          enum: [EUR]
+        archived:
+          type: boolean
+    Invoice:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        organizationId:
+          type: string
+          format: uuid
+        createdDate:
+          type: string
+          format: date-time
+        updatedDate:
+          type: string
+          format: date-time
+        version:
+          type: integer
+        language:
+          type: string
+          enum: [de, en]
+        archived:
+          type: boolean
+        voucherStatus:
+          type: string
+          enum: [draft, open, paid, voided]
+        voucherNumber:
+          type: string
+        voucherDate:
+          type: string
+          format: date-time
+        dueDate:
+          type: string
+          format: date-time
+        address:
+          $ref: "#/components/schemas/Address"
+        xRechnung:
+          type: object
+          nullable: true
+          properties:
+            buyerReference:
+              type: string
+        lineItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/LineItem"
+        totalPrice:
+          $ref: "#/components/schemas/TotalPrice"
+        taxAmounts:
+          type: array
+          items:
+            $ref: "#/components/schemas/TaxAmount"
+        taxConditions:
+          $ref: "#/components/schemas/TaxConditions"
+        paymentConditions:
+          $ref: "#/components/schemas/PaymentConditions"
+        shippingConditions:
+          $ref: "#/components/schemas/ShippingConditions"
+        closingInvoice:
+          type: boolean
+        claimedGrossAmount:
+          type: number
+          nullable: true
+        downPaymentDeductions:
+          type: object
+          nullable: true
+        recurringTemplateId:
+          type: string
+          nullable: true
+        relatedVouchers:
+          type: array
+          items:
+            $ref: "#/components/schemas/RelatedVoucher"
+        title:
+          type: string
+        introduction:
+          type: string
+        remark:
+          type: string
+        files:
+          type: object
+          properties:
+            documentFileId:
+              type: string
+    Address:
+      type: object
+      properties:
+        contactId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        supplement:
+          type: string
+        street:
+          type: string
+        city:
+          type: string
+        zip:
+          type: string
+        countryCode:
+          type: string
+          enum: [DE, AT]
+        contactPerson:
+          type: string
+    LineItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [service, material, custom, text]
+        name:
+          type: string
+        description:
+          type: string
+        quantity:
+          type: number
+        unitName:
+          type: string
+        unitPrice:
+          $ref: "#/components/schemas/UnitPrice"
+        discountPercentage:
+          type: number
+        lineItemAmount:
+          type: number
+    UnitPrice:
+      type: object
+      properties:
+        currency:
+          type: string
+          enum: [EUR]
+        netAmount:
+          type: number
+        grossAmount:
+          type: number
+        taxRatePercentage:
+          type: number
+    TotalPrice:
+      type: object
+      required:
+        - currency
+        - totalNetAmount
+        - totalGrossAmount
+        - totalTaxAmount
+      properties:
+        currency:
+          type: string
+          enum: [EUR]
+        totalNetAmount:
+          type: number
+        totalGrossAmount:
+          type: number
+        totalTaxAmount:
+          type: number
+        totalDiscountAbsolute:
+          type: number
+        totalDiscountPercentage:
+          type: number
+    TaxAmount:
+      type: object
+      properties:
+        taxRatePercentage:
+          type: number
+        taxAmount:
+          type: number
+        netAmount:
+          type: number
+    TaxConditions:
+      type: object
+      properties:
+        taxType:
+          type: string
+          enum:
+            - net
+            - gross
+            - vatfree
+            - intraCommunitySupply
+            - constructionService13b
+            - externalService13b
+            - thirdPartyCountryService
+            - thirdPartyCountryDelivery
+            - photovoltaicEquipment
+        taxSubType:
+          type: string
+          enum:
+            - distanceSales
+            - electronicServices
+          nullable: true
+        taxTypeNote:
+          type: string
+    PaymentConditions:
+      type: object
+      properties:
+        paymentTermLabel:
+          type: string
+        paymentTermLabelTemplate:
+          type: string
+        paymentTermDuration:
+          type: integer
+        paymentDiscountConditions:
+          type: object
+          properties:
+            discountPercentage:
+              type: number
+            discountRange:
+              type: integer
+    ShippingConditions:
+      type: object
+      properties:
+        shippingDate:
+          type: string
+          format: date-time
+        shippingEndDate:
+          type: string
+          format: date-time
+        shippingType:
+          type: string
+          enum:
+            - service
+            - serviceperiod
+            - delivery
+            - deliveryperiod
+            - none
+    RelatedVoucher:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        voucherNumber:
+          type: string
+        voucherType:
+          type: string
+    SortProperties:
+      type: object
+      properties:
+        direction:
+          type: string
+        property:
+          type: string
+        ignoreCase:
+          type: boolean
+        nullHandling:
+          type: string
+        ascending:
+          type: boolean
+    ErrorMsg:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Error message
+          example: An error has occurred

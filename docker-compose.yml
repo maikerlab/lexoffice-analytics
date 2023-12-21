@@ -1,0 +1,30 @@
+version: '3.1'
+
+services:
+  db:
+    image: postgres
+    restart: always
+    environment:
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_DB
+    volumes:
+      - ./db/data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8000:8080
+
+  lexoffice-sync:
+    build: ./lexoffice-sync
+    environment:
+      - POSTGRES_URL
+      - POSTGRES_USER
+      - POSTGRES_PASSWORD
+      - POSTGRES_DB
+      - LEXOFFICE_APIKEY
+    command: ["lexoffice-cli", "sync"]
