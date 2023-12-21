@@ -19,12 +19,9 @@ services:
     ports:
       - 8000:8080
 
-  lexoffice-sync:
+  lexoffice-cli:
     build: ./lexoffice-cli
     environment:
-      - POSTGRES_URL
-      - POSTGRES_USER
-      - POSTGRES_PASSWORD
-      - POSTGRES_DB
+      - DATABASE_URL
       - LEXOFFICE_APIKEY
-    command: ["lexoffice-cli", "sync"]
+    command: ["lexoffice-cli", "show"]

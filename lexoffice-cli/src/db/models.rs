@@ -3,7 +3,7 @@ use std::time::SystemTime;
 use diesel::prelude::*;
 
 #[derive(Queryable, Selectable)]
-#[diesel(table_name = crate::schema::vouchers)]
+#[diesel(table_name = crate::db::schema::vouchers)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Voucher {
     pub id: String,
