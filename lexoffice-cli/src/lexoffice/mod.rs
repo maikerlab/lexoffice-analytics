@@ -29,6 +29,7 @@ pub async fn sync_voucherlist(config: &Configuration, page: i32, size: i32) {
         None,
         Some(page),
         Some(size),
+        Some("voucherDate,DESC"),
     )
     .await;
 
