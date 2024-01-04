@@ -9,19 +9,17 @@ pub mod schema;
 use diesel::prelude::*;
 use openapi::models::*;
 
-use self::models::*;
-
 pub fn connect_db() -> PgConnection {
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
     PgConnection::establish(&db_url).unwrap_or_else(|_| panic!("Error connecting to {}", db_url))
 }
 
-pub fn get_all_vouchers() -> Vec<QueryableVoucher> {
+pub fn get_all_vouchers() -> Vec<models::Voucher> {
     use self::schema::vouchers::dsl::*;
     let conn = &mut connect_db();
 
-    let results = vouchers.select(QueryableVoucher::as_select()).load(conn);
+    let results = vouchers.select(models::Voucher::as_select()).load(conn);
 
     match results {
         Ok(res) => res,
@@ -32,18 +30,19 @@ pub fn get_all_vouchers() -> Vec<QueryableVoucher> {
     }
 }
 
-pub fn get_voucher_by_id(voucher_id: String) -> Result<QueryableVoucher, Error> {
+pub fn get_voucher_by_id(voucher_id: String) -> Result<models::Voucher, Error> {
     use self::schema::vouchers::dsl::*;
     let conn = &mut connect_db();
 
     vouchers.find(voucher_id).first(conn)
 }
 
-pub fn get_all_invoices() -> Vec<QueryableInvoice> {
+pub fn get_all_invoices() -> Vec<models::Invoice> {
     use self::schema::invoices::dsl::*;
     let conn = &mut connect_db();
 
-    let results = invoices.select(QueryableInvoice::as_select()).load(conn);
+    let results: Result<Vec<models::Invoice>, Error> =
+        invoices.select(models::Invoice::as_select()).load(conn);
 
     match results {
         Ok(res) => res,
@@ -55,27 +54,27 @@ pub fn get_all_invoices() -> Vec<QueryableInvoice> {
 }
 
 // Convert Lexoffice Invoice to database entity
-impl From<Invoice> for InsertableInvoice {
+impl From<Invoice> for models::Invoice {
     fn from(invoice: Invoice) -> Self {
-        InsertableInvoice {
+        models::Invoice {
             id: invoice.id.unwrap_or_default().to_string(),
-            organizationid: invoice.organization_id.try_into(),
-            createddate: invoice.created_date.try_into(),
-            updateddate: invoice.updated_date.try_into(),
-            version: invoice.version.try_into(),
-            language: invoice.language.try_into(),
-            archived: invoice.archived.try_into(),
-            voucherstatus: invoice.voucher_status.try_into(),
-            vouchernumber: invoice.voucher_number.try_into(),
-            voucherdate: invoice.voucher_date.try_into(),
-            duedate: invoice.due_date.try_into(),
-            address_id: invoice.address.unwrap_or_default().contact_id.try_into(),
-            address_name: invoice.address.unwrap_or_default().name.try_into(),
-            address_supplement: invoice.address.unwrap_or_default().supplement.try_into(),
-            address_street: invoice.address.unwrap_or_default().street.try_into(),
-            address_city: invoice.address.unwrap_or_default().city.try_into(),
-            address_zip: invoice.address.unwrap_or_default().zip.try_into(),
-            address_countrycode: invoice.address.unwrap_or_default().country_code.try_into(),
+            organizationid: None,
+            createddate: None,
+            updateddate: None,
+            version: None,
+            language: None,
+            archived: None,
+            voucherstatus: Some(format!("{:?}", invoice.voucher_status.unwrap_or_default())),
+            vouchernumber: None,
+            voucherdate: None,
+            duedate: None,
+            address_id: None,
+            address_name: None,
+            address_supplement: None,
+            address_street: None,
+            address_city: None,
+            address_zip: None,
+            address_countrycode: None,
         }
     }
 }
@@ -84,7 +83,7 @@ pub fn insert_invoice(invoice: Invoice) -> Result<usize, Error> {
     use self::schema::invoices::dsl::*;
     let conn = &mut connect_db();
 
-    let invoice = InsertableInvoice::from(invoice);
+    let invoice = models::Invoice::from(invoice);
 
     let result = diesel::insert_into(invoices).values(invoice).execute(conn);
     result
@@ -93,6 +92,7 @@ pub fn insert_invoice(invoice: Invoice) -> Result<usize, Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use openapi::models::invoice::*;
     use uuid::Uuid;
 
     #[test]
@@ -106,8 +106,8 @@ mod tests {
             version: None,
             language: None,
             archived: None,
-            voucher_status: None,
-            voucher_number: None,
+            voucher_status: Some(VoucherStatus::Draft),
+            voucher_number: Some("test".to_string()),
             voucher_date: None,
             due_date: None,
             address: None,
