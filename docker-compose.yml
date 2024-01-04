@@ -24,4 +24,5 @@ services:
     environment:
       - DATABASE_URL
       - LEXOFFICE_APIKEY
+      - API_RATE_LIMIT
     command: ["lexoffice-cli", "show"]

@@ -15,8 +15,8 @@ diesel::table! {
 diesel::table! {
     invoices (id) {
         id -> Varchar,
-        organizationid -> Varchar,
-        createddate -> Timestamp,
+        organizationid -> Nullable<Varchar>,
+        createddate -> Nullable<Timestamp>,
         updateddate -> Nullable<Timestamp>,
         version -> Nullable<Int4>,
         language -> Nullable<Varchar>,

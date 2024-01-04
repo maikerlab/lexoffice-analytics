@@ -1,6 +1,6 @@
 -- Your SQL goes here
 CREATE TABLE vouchers (
-  id VARCHAR PRIMARY KEY,
+  id VARCHAR NOT NULL PRIMARY KEY,
   voucherType VARCHAR,
   voucherStatus VARCHAR,
   voucherNumber VARCHAR,
@@ -17,9 +17,9 @@ CREATE TABLE vouchers (
 );
 
 CREATE TABLE invoices (
-  id VARCHAR PRIMARY KEY,
-  organizationId VARCHAR NOT NULL,
-  createdDate TIMESTAMP NOT NULL,
+  id VARCHAR NOT NULL PRIMARY KEY,
+  organizationId VARCHAR,
+  createdDate TIMESTAMP,
   updatedDate TIMESTAMP,
   version INTEGER,
   language VARCHAR,

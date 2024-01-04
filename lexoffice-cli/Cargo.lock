@@ -599,6 +599,7 @@ dependencies = [
  "diesel",
  "dotenvy",
  "futures",
+ "once_cell",
  "openapi",
  "tokio",
  "uuid",
