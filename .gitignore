@@ -1,3 +1,13 @@
+# Environment variables
 .env
-Taskfile.yml
+
+# Database
 db/data
+
+# temp files
+*.bkp
+*.dtmp
+
+# IDE and user-related / dev-tools stuff
+Taskfile.yml
+.vscode/
