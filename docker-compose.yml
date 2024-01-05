@@ -1,28 +1,31 @@
-version: '3.1'
+version: "3.1"
 
 services:
-  db:
-    image: postgres
-    restart: always
-    environment:
-      - POSTGRES_USER
-      - POSTGRES_PASSWORD
-      - POSTGRES_DB
-    volumes:
-      - ./db/data:/var/lib/postgresql/data
-    ports:
-      - "5434:5432"
+    db:
+        image: postgres
+        restart: always
+        environment:
+            - POSTGRES_USER
+            - POSTGRES_PASSWORD
+            - POSTGRES_DB
+        volumes:
+            - pgdata:/var/lib/postgresql/data
+        ports:
+            - "5434:5432"
 
-  adminer:
-    image: adminer
-    restart: always
-    ports:
-      - 8000:8080
+    adminer:
+        image: adminer
+        restart: always
+        ports:
+            - 8000:8080
 
-  lexoffice-cli:
-    build: ./lexoffice-cli
-    environment:
-      - DATABASE_URL
-      - LEXOFFICE_APIKEY
-      - API_RATE_LIMIT
-    command: ["lexoffice-cli", "show"]
+    lexoffice-cli:
+        build: ./lexoffice-cli
+        environment:
+            - DATABASE_URL
+            - LEXOFFICE_APIKEY
+            - API_RATE_LIMIT
+        command: ["lexoffice-cli", "show"]
+
+volumes:
+    pgdata:

@@ -4,9 +4,10 @@ pub mod lexoffice;
 use dotenvy::dotenv;
 use futures::executor::block_on;
 use openapi::apis::configuration::Configuration;
-use std::{env, time::SystemTime};
+use sqlx::PgPool;
+use std::{env, fmt::Error, time::SystemTime};
 
-fn sync_lexoffice() {
+async fn sync_lexoffice(pool: &PgPool) {
     let mut conf = Configuration::default();
     let api_key =
         env::var("LEXOFFICE_APIKEY").expect("'LEXOFFICE_APIKEY' must bet set as env var!");
@@ -14,16 +15,20 @@ fn sync_lexoffice() {
     block_on(lexoffice::sync_voucherlist(&conf, 1, 250));
 }
 
-fn show_vouchers() {
-    let all_vouchers = db::get_all_vouchers();
+async fn show_vouchers(pool: &PgPool) {
+    let all_vouchers = db::get_all_vouchers(pool).await;
+
     println!("Displaying {} vouchers", all_vouchers.len());
     for voucher in all_vouchers {
         println!("-----------");
         println!("ID: {}", voucher.id);
-        println!("Type: {}", voucher.vouchertype.unwrap_or("n/a".to_string()));
+        println!(
+            "Type: {}",
+            voucher.voucher_type.unwrap_or("n/a".to_string())
+        );
         println!(
             "Contact Name: {}",
-            voucher.contactname.unwrap_or("n/a".to_string())
+            voucher.contact_name.unwrap_or("n/a".to_string())
         );
     }
 
@@ -34,12 +39,9 @@ fn show_vouchers() {
         println!("ID: {}", invoice.id);
         println!(
             "Number: {}",
-            invoice.vouchernumber.unwrap_or("n/a".to_string())
+            invoice.voucher_number.unwrap_or("n/a".to_string())
         );
-        println!(
-            "Updated at: {:?}",
-            invoice.updateddate.unwrap_or(SystemTime::now())
-        );
+        println!("Updated at: {:?}", invoice.updated_date.unwrap());
     }
 }
 
@@ -51,13 +53,16 @@ async fn main() {
         panic!("Usage: lexoffice-cli [sync|show]");
     }
 
+    let db_pool = db::connect_db().await.unwrap();
+    let _ = sqlx::migrate!().run(&db_pool).await;
+
     let cmd = &args[1];
     if cmd == "sync" {
         println!("Starting lexoffice sync...");
-        sync_lexoffice();
+        sync_lexoffice(&db_pool).await;
     } else if cmd == "show" {
         println!("Showing database entries...\n");
-        show_vouchers();
+        show_vouchers(&db_pool).await;
     } else {
         panic!("Unknown command: {}", cmd);
     }

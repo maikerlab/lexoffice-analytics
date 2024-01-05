@@ -1,56 +1,41 @@
-use std::env;
+use std::{env, vec};
 
-use diesel::result::Error;
-use diesel::{Connection, PgConnection};
+use sqlx::{postgres::PgPoolOptions, Error, PgPool, Pool, Postgres};
 
 pub mod models;
-pub mod schema;
 
-use diesel::prelude::*;
 use openapi::models::*;
 
-pub fn connect_db() -> PgConnection {
+pub async fn connect_db() -> Result<Pool<Postgres>, Error> {
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
 
-    PgConnection::establish(&db_url).unwrap_or_else(|_| panic!("Error connecting to {}", db_url))
+    PgPoolOptions::new()
+        .max_connections(5)
+        .connect(&db_url)
+        .await
 }
 
-pub fn get_all_vouchers() -> Vec<models::Voucher> {
-    use self::schema::vouchers::dsl::*;
-    let conn = &mut connect_db();
-
-    let results = vouchers.select(models::Voucher::as_select()).load(conn);
+pub async fn get_all_vouchers(pool: &PgPool) -> Vec<models::Voucher> {
+    let results = sqlx::query_as!(
+        models::Voucher,
+r#"
+    SELECT id, archived, contact_id, contact_name, voucher_date, created_date, due_date, updated_date, voucher_number, voucher_type, voucher_status, total_amount, open_amount, currency FROM vouchers
+"#
+    )
+    .fetch_all(pool).await;
 
     match results {
-        Ok(res) => res,
-        Err(e) => {
-            println!("Error getting vouchers: {}", e);
-            vec![]
-        }
+        Ok(vouchers) => vouchers,
+        Err(_) => vec![],
     }
 }
 
 pub fn get_voucher_by_id(voucher_id: String) -> Result<models::Voucher, Error> {
-    use self::schema::vouchers::dsl::*;
-    let conn = &mut connect_db();
-
-    vouchers.find(voucher_id).first(conn)
+    todo!("todo");
 }
 
 pub fn get_all_invoices() -> Vec<models::Invoice> {
-    use self::schema::invoices::dsl::*;
-    let conn = &mut connect_db();
-
-    let results: Result<Vec<models::Invoice>, Error> =
-        invoices.select(models::Invoice::as_select()).load(conn);
-
-    match results {
-        Ok(res) => res,
-        Err(e) => {
-            println!("Error getting invoices: {}", e);
-            vec![]
-        }
-    }
+    todo!("todo");
 }
 
 // Convert Lexoffice Invoice to database entity
@@ -58,16 +43,16 @@ impl From<Invoice> for models::Invoice {
     fn from(invoice: Invoice) -> Self {
         models::Invoice {
             id: invoice.id.unwrap_or_default().to_string(),
-            organizationid: None,
-            createddate: None,
-            updateddate: None,
+            organization_id: None,
+            created_date: None,
+            updated_date: None,
             version: None,
             language: None,
             archived: None,
-            voucherstatus: Some(format!("{:?}", invoice.voucher_status.unwrap_or_default())),
-            vouchernumber: None,
-            voucherdate: None,
-            duedate: None,
+            voucher_status: Some(format!("{:?}", invoice.voucher_status.unwrap_or_default())),
+            voucher_number: None,
+            voucher_date: None,
+            due_date: None,
             address_id: None,
             address_name: None,
             address_supplement: None,
@@ -80,13 +65,7 @@ impl From<Invoice> for models::Invoice {
 }
 
 pub fn insert_invoice(invoice: Invoice) -> Result<usize, Error> {
-    use self::schema::invoices::dsl::*;
-    let conn = &mut connect_db();
-
-    let invoice = models::Invoice::from(invoice);
-
-    let result = diesel::insert_into(invoices).values(invoice).execute(conn);
-    result
+    todo!("todo");
 }
 
 #[cfg(test)]

@@ -26,15 +26,20 @@ openapi-generator-cli generate -i lexoffice-api.yml -g rust -o openapi
 
 ## Database
 
-We can create the database and run mirations using Diesel CLI.\
-Requirement: `DATABASE_URL` must be set as environment variable (e.g.: `postgres://bunu:bunu@localhost:5434/bunu`).
-More info at [diesel.rs](https://diesel.rs/guides/getting-started).
+We can create the database and run migrations using the [sqlx-cli](https://crates.io/crates/sqlx-cli) crate.\
+Requirement: `DATABASE_URL` must be set as environment variable (e.g.: `postgres://bunu:bunu@localhost:5432/bunu`).
+
+Add migration files (Only during development!):
+
+```shell
+sqlx migrate add -r <name>
+```
 
 Create database and run all pending migrations:
 
 ```shell
-diesel setup
-diesel migration run
+sqlx database create
+sqlx migrate run
 ```
 
 ### Tables

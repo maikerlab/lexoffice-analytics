@@ -2,21 +2,16 @@ use core::time;
 use std::thread::sleep;
 pub mod utils;
 use crate::db;
-use once_cell::sync::Lazy;
-use std::env;
 
 use openapi::apis::{
     configuration::Configuration,
     default_api::{invoices_id_get, voucherlist_get},
 };
 
-pub static MAX_REQUESTS_PER_SECOND: Lazy<f32> = Lazy::new(|| match env::var("API_RATE_LIMIT") {
-    Ok(value) => value.parse().unwrap_or(2.0),
-    Err(_) => 2.0,
-});
+pub const MAX_REQUESTS_PER_SECOND: f32 = 2.0;
 
-pub async fn sync_invoice(config: &Configuration, id: uuid::Uuid) {
-    let response = invoices_id_get(config, id.to_string().as_str()).await;
+pub async fn sync_invoice(config: &Configuration, id: String) {
+    let response = invoices_id_get(config, id.as_str()).await;
     match response {
         Ok(invoice) => {
             let _result = db::insert_invoice(invoice.clone());
@@ -61,11 +56,11 @@ pub async fn sync_voucherlist(config: &Configuration, page: i32, size: i32) {
                 //for v in vouchers.content.unwrap() {
                 println!("Got Voucher: {:?}", v.contact_name.as_ref().unwrap());
                 println!(" - Voucher Date: {:?}", v.voucher_date.as_ref().unwrap());
-                sync_invoice(config, v.id.unwrap()).await;
+                sync_invoice(config, v.id.unwrap().to_string()).await;
                 if !vouchers.last.unwrap_or_default() {
                     //sync_voucherlist(config, page + 1, size).await;
                 }
-                let wait_ms = utils::get_api_rate_ms(*MAX_REQUESTS_PER_SECOND);
+                let wait_ms = utils::get_api_rate_ms(MAX_REQUESTS_PER_SECOND);
                 println!("Waiting {} ms for next API call", wait_ms);
                 sleep(time::Duration::from_millis(wait_ms));
             }

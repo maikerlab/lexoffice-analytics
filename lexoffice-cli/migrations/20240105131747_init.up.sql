@@ -1,33 +1,33 @@
--- Your SQL goes here
+-- Add migration script here
 CREATE TABLE vouchers (
   id VARCHAR NOT NULL PRIMARY KEY,
-  voucherType VARCHAR,
-  voucherStatus VARCHAR,
-  voucherNumber VARCHAR,
-  voucherDate TIMESTAMP,
-  createdDate TIMESTAMP,
-  updatedDate TIMESTAMP,
-  dueDate TIMESTAMP,
-  contactId VARCHAR,
-  contactName VARCHAR,
-  totalAmount FLOAT,
-  openAmount FLOAT,
+  voucher_type VARCHAR,
+  voucher_status VARCHAR,
+  voucher_number VARCHAR,
+  voucher_date TIMESTAMP,
+  created_date TIMESTAMP,
+  updated_date TIMESTAMP,
+  due_date TIMESTAMP,
+  contact_id VARCHAR,
+  contact_name VARCHAR,
+  total_amount FLOAT,
+  open_amount FLOAT,
   currency VARCHAR,
   archived BOOLEAN
 );
 
 CREATE TABLE invoices (
   id VARCHAR NOT NULL PRIMARY KEY,
-  organizationId VARCHAR,
-  createdDate TIMESTAMP,
-  updatedDate TIMESTAMP,
+  organization_id VARCHAR,
+  created_date TIMESTAMP,
+  updated_ate TIMESTAMP,
   version INTEGER,
   language VARCHAR,
   archived BOOLEAN,
-  voucherStatus VARCHAR,
-  voucherNumber VARCHAR,
-  voucherDate TIMESTAMP,
-  dueDate TIMESTAMP,
+  voucher_status VARCHAR,
+  voucher_number VARCHAR,
+  voucher_date TIMESTAMP,
+  due_date TIMESTAMP,
   address_id VARCHAR,
   address_name VARCHAR,
   address_supplement VARCHAR,
@@ -38,7 +38,8 @@ CREATE TABLE invoices (
 );
 
 CREATE TABLE addresses (
-  contactId VARCHAR PRIMARY KEY,
+  id INT PRIMARY KEY,
+  contact_id VARCHAR,
   name VARCHAR,
   supplement VARCHAR,
   street VARCHAR,
