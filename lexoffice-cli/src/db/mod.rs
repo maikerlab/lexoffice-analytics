@@ -1,10 +1,8 @@
-use std::{env, vec};
-
-use sqlx::{postgres::PgPoolOptions, Error, PgPool, Pool, Postgres};
-
 pub mod models;
-
+use self::models::{DbInvoice, DbVoucher};
 use openapi::models::*;
+use sqlx::{postgres::PgPoolOptions, Error, PgPool, Pool, Postgres};
+use std::{env, vec};
 
 pub async fn connect_db() -> Result<Pool<Postgres>, Error> {
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
@@ -15,9 +13,9 @@ pub async fn connect_db() -> Result<Pool<Postgres>, Error> {
         .await
 }
 
-pub async fn get_all_vouchers(pool: &PgPool) -> Vec<models::Voucher> {
+pub async fn get_all_vouchers(pool: &PgPool) -> Vec<DbVoucher> {
     let results = sqlx::query_as!(
-        models::Voucher,
+        DbVoucher,
 r#"
     SELECT id, archived, contact_id, contact_name, voucher_date, created_date, due_date, updated_date, voucher_number, voucher_type, voucher_status, total_amount, open_amount, currency FROM vouchers
 "#
@@ -30,18 +28,39 @@ r#"
     }
 }
 
-pub fn get_voucher_by_id(voucher_id: String) -> Result<models::Voucher, Error> {
-    todo!("todo");
+pub async fn get_voucher_by_id(pool: &PgPool, voucher_id: String) -> Result<DbVoucher, Error> {
+    sqlx::query_as!(
+        DbVoucher,
+        r#"select * from vouchers where id = $1"#,
+        voucher_id
+    )
+    .fetch_one(pool)
+    .await
 }
 
-pub fn get_all_invoices() -> Vec<models::Invoice> {
-    todo!("todo");
+pub async fn get_vouchers_by_type(
+    pool: &PgPool,
+    voucher_type: String,
+) -> Result<Vec<DbVoucher>, Error> {
+    sqlx::query_as!(
+        DbVoucher,
+        r#"select * from vouchers where voucher_type = $1"#,
+        voucher_type
+    )
+    .fetch_all(pool)
+    .await
+}
+
+pub async fn get_all_invoices(pool: &PgPool) -> Result<Vec<DbInvoice>, Error> {
+    sqlx::query_as!(DbInvoice, r#"select * from invoices"#)
+        .fetch_all(pool)
+        .await
 }
 
 // Convert Lexoffice Invoice to database entity
-impl From<Invoice> for models::Invoice {
+impl From<Invoice> for DbInvoice {
     fn from(invoice: Invoice) -> Self {
-        models::Invoice {
+        DbInvoice {
             id: invoice.id.unwrap_or_default().to_string(),
             organization_id: None,
             created_date: None,
@@ -64,15 +83,27 @@ impl From<Invoice> for models::Invoice {
     }
 }
 
-pub fn insert_invoice(invoice: Invoice) -> Result<usize, Error> {
-    todo!("todo");
+pub async fn insert_voucher(pool: &PgPool, voucher: Voucher) -> Result<usize, Error> {
+    todo!("insert voucher into db");
+    let _ = sqlx::query!(r#"INSERT INTO vouchers (id, voucher_type) VALUES ('123', 'asd')"#,)
+        .bind(voucher.id.unwrap().to_string())
+        .bind(format!("{:?}", voucher.voucher_type))
+        .fetch_all(pool)
+        .await;
+
+    Ok(1)
+}
+
+pub fn insert_invoice(pool: &PgPool, invoice: Invoice) -> Result<usize, Error> {
+    todo!("insert invoice into db");
+    Ok(1)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use openapi::models::invoice::*;
-    use uuid::Uuid;
+    use sqlx::types::Uuid;
 
     #[test]
     fn test_insert_invoice() {
@@ -108,6 +139,6 @@ mod tests {
             files: None,
         };
         let result = insert_invoice(invoice);
-        assert_eq!(result, Ok(1));
+        assert_eq!(result.unwrap(), 1);
     }
 }

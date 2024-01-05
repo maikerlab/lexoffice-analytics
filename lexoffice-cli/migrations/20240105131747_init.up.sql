@@ -20,7 +20,7 @@ CREATE TABLE invoices (
   id VARCHAR NOT NULL PRIMARY KEY,
   organization_id VARCHAR,
   created_date TIMESTAMP,
-  updated_ate TIMESTAMP,
+  updated_date TIMESTAMP,
   version INTEGER,
   language VARCHAR,
   archived BOOLEAN,

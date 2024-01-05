@@ -2,17 +2,72 @@ pub mod db;
 pub mod lexoffice;
 
 use dotenvy::dotenv;
-use futures::executor::block_on;
-use openapi::apis::configuration::Configuration;
-use sqlx::PgPool;
-use std::{env, fmt::Error, time::SystemTime};
+use openapi::{
+    apis::configuration::Configuration,
+    models::{
+        voucher::{VoucherStatus, VoucherType},
+        Voucher,
+    },
+};
+use sqlx::{types::Uuid, PgPool};
+use std::env;
+
+async fn sync_vouchers(pool: &PgPool, vouchers: Vec<Voucher>) {
+    for voucher in vouchers {
+        db::insert_voucher(pool, voucher).await.ok();
+    }
+}
+
+async fn sync_invoice(config: &Configuration, pool: &PgPool, invoice_id: String) {
+    let result = lexoffice::get_invoice(config, invoice_id.clone())
+        .await
+        .and_then(move |invoice| Ok(db::insert_invoice(pool, invoice)));
+    match result {
+        Ok(_) => println!("Synced invoice {}", invoice_id),
+        Err(e) => println!("Error syncing invoice: {:?}", e),
+    }
+}
 
 async fn sync_lexoffice(pool: &PgPool) {
-    let mut conf = Configuration::default();
-    let api_key =
-        env::var("LEXOFFICE_APIKEY").expect("'LEXOFFICE_APIKEY' must bet set as env var!");
-    conf.bearer_access_token = Some(api_key);
-    block_on(lexoffice::sync_voucherlist(&conf, 1, 250));
+    let api_key = env::var("LEXOFFICE_APIKEY").expect("'LEXOFFICE_APIKEY' must bet set!");
+    let config = lexoffice::get_config(api_key);
+
+    // First get all vouchers from voucherlist endpoint and save into DB
+    let mut current_page = 1;
+    let page_size = 250;
+    loop {
+        let res = lexoffice::get_voucherlist(&config, current_page, page_size).await;
+        match res {
+            Err(e) => println!("error getting voucherlist: {}", e),
+            Ok(voucher_list) => {
+                println!(
+                    "Fetched {} of {} vouchers",
+                    voucher_list.number_of_elements.unwrap(),
+                    voucher_list.total_elements.unwrap()
+                );
+                let vouchers = voucher_list.content.unwrap_or(vec![]);
+                sync_vouchers(pool, vouchers.clone()).await;
+
+                for v in &vouchers[..3] {
+                    println!("Got Voucher: {:?}", v.contact_name.as_ref());
+                    println!(" - Voucher Date: {:?}", v.voucher_date.as_ref());
+                }
+
+                if voucher_list.last.unwrap_or(false) {
+                    break;
+                }
+                current_page += 1;
+            }
+        }
+    }
+
+    // Get saved vouchers from DB and get+save invoices
+    let invoices = db::get_vouchers_by_type(pool, "invoice".to_string())
+        .await
+        .unwrap_or(vec![]);
+    for voucher in invoices {
+        sync_invoice(&config, pool, voucher.id).await;
+    }
 }
 
 async fn show_vouchers(pool: &PgPool) {
@@ -32,7 +87,7 @@ async fn show_vouchers(pool: &PgPool) {
         );
     }
 
-    let all_invoices = db::get_all_invoices();
+    let all_invoices = db::get_all_invoices(pool).await.unwrap_or(vec![]);
     println!("\n\nDisplaying {} invoices", all_invoices.len());
     for invoice in all_invoices {
         println!("-----------");

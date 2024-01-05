@@ -1,7 +1,7 @@
 use sqlx::{self, types::chrono::NaiveDateTime};
 
 #[derive(Debug, sqlx::FromRow)]
-pub struct Address {
+pub struct DbAddress {
     pub contactid: String,
     pub name: Option<String>,
     pub supplement: Option<String>,
@@ -12,7 +12,7 @@ pub struct Address {
 }
 
 #[derive(Debug, sqlx::FromRow)]
-pub struct Invoice {
+pub struct DbInvoice {
     pub id: String,
     pub organization_id: Option<String>,
     pub created_date: Option<NaiveDateTime>,
@@ -34,7 +34,7 @@ pub struct Invoice {
 }
 
 #[derive(Debug, sqlx::FromRow)]
-pub struct LineItem {
+pub struct DbLineItem {
     pub id: i32,
     pub product_id: Option<String>,
     pub voucher_id: Option<String>,
@@ -47,7 +47,7 @@ pub struct LineItem {
 }
 
 #[derive(Debug, sqlx::FromRow)]
-pub struct Product {
+pub struct DbProduct {
     pub id: String,
     pub type_: Option<String>,
     pub name: Option<String>,
@@ -55,7 +55,7 @@ pub struct Product {
 }
 
 #[derive(Debug, sqlx::FromRow)]
-pub struct Voucher {
+pub struct DbVoucher {
     pub id: String,
     pub voucher_type: Option<String>,
     pub voucher_status: Option<String>,
@@ -70,4 +70,25 @@ pub struct Voucher {
     pub open_amount: Option<f64>,
     pub currency: Option<String>,
     pub archived: Option<bool>,
+}
+
+impl Default for DbVoucher {
+    fn default() -> Self {
+        Self {
+            id: Default::default(),
+            voucher_type: Default::default(),
+            voucher_status: Default::default(),
+            voucher_number: Default::default(),
+            voucher_date: Default::default(),
+            created_date: Default::default(),
+            updated_date: Default::default(),
+            due_date: Default::default(),
+            contact_id: Default::default(),
+            contact_name: Default::default(),
+            total_amount: Default::default(),
+            open_amount: Default::default(),
+            currency: Default::default(),
+            archived: Default::default(),
+        }
+    }
 }
