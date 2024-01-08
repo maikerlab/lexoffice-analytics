@@ -147,6 +147,34 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Payment"
+  /payment-conditions:
+    get:
+      summary: Retrieve payment conditions configured in lexoffice
+      tags:
+        - Payments
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PostingCategory"
+  /posting-categories:
+    get:
+      summary: Retrieve payment conditions configured in lexoffice
+      tags:
+        - Posting Categories
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PaymentConditions"
   /voucherlist:
     get:
       summary: Retrieve Voucherlist
@@ -884,6 +912,25 @@ components:
           type: string
         lastName:
           type: string
+    PostingCategory:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        type:
+          type: string
+          enum:
+            - income
+            - outgo
+        contactRequired:
+          type: boolean
+        splitAllowed:
+          type: boolean
+        groupName:
+          type: string
     CompanyContactPerson:
       type: object
       properties:
@@ -1109,6 +1156,25 @@ components:
       properties:
         paymentTermLabel:
           type: string
+        paymentTermLabelTemplate:
+          type: string
+        paymentTermDuration:
+          type: integer
+        paymentDiscountConditions:
+          type: object
+          properties:
+            discountPercentage:
+              type: number
+            discountRange:
+              type: integer
+    OrganizationPaymentConditions:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        organizationDefault:
+          type: boolean
         paymentTermLabelTemplate:
           type: string
         paymentTermDuration:
