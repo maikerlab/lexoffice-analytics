@@ -175,6 +175,18 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/PaymentConditions"
+  /profile:
+    get:
+      summary: Get basic profile information about connected lexoffice account
+      tags:
+        - Profile
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
   /voucherlist:
     get:
       summary: Retrieve Voucherlist
@@ -1056,6 +1068,52 @@ components:
           type: number
         taxRatePercentage:
           type: number
+    UserProfile:
+      type: object
+      properties:
+        organizationId:
+          type: string
+          format: uuid
+        companyName:
+          type: string
+        created:
+          type: object
+          properties:
+            userId:
+              type: string
+              format: uuid
+            userName:
+              type: string
+            userEmail:
+              type: string
+            date:
+              type: string
+              format: date-time
+        connectionId:
+          type: string
+          format: uuid
+        taxType:
+          type: string
+          enum:
+            - net
+            - gross
+            - vatfree
+        distanceSalesPrinciple:
+          type: string
+          enum:
+            - ORIGIN
+            - DESTINATION
+          nullable: true
+        businessFeatures:
+          type: array
+          items:
+            type: string
+            enum:
+              - INVOICING
+              - INVOICING_PRO
+              - BOOKKEEPING
+        smallBusiness:
+          type: boolean
     TotalPrice:
       type: object
       required:
