@@ -25,6 +25,20 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Contact"
+  /countries:
+    get:
+      summary: Retrieve list of countries
+      tags:
+        - Countries
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Country"
   /voucherlist:
     get:
       summary: Retrieve Voucherlist
@@ -466,6 +480,17 @@ components:
           type: string
         archived:
           type: boolean
+    Country:
+      type: object
+      properties:
+        countryCode:
+          type: string
+        countryNameDE:
+          type: string
+        countryNameEN:
+          type: string
+        taxClassification:
+          type: string
     XRechnung:
       type: object
       properties:
