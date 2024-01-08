@@ -42,6 +42,14 @@ paths:
   /credit-notes/{id}:
     get:
       summary: Find credit note by ID
+      tags:
+        - Credit Notes
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
       responses:
         "200":
           description: OK
@@ -52,6 +60,14 @@ paths:
   /delivery-notes/{id}:
     get:
       summary: Find delivery note by ID
+      tags:
+        - Delivery Notes
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
       responses:
         "200":
           description: OK
@@ -59,6 +75,60 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DeliveryNote"
+  /down-payment-invoices/{id}:
+    get:
+      summary: Find a down payment invoice by ID
+      tags:
+        - Down Payment Invoices
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DownPaymentInvoice"
+  /dunnings/{id}:
+    get:
+      summary: Find a dunning by ID
+      tags:
+        - Dunnings
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dunning"
+  /order-confirmations/{id}:
+    get:
+      summary: Find an order confirmation by ID
+      tags:
+        - Order Confirmations
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderConfirmation"
   /voucherlist:
     get:
       summary: Retrieve Voucherlist
@@ -387,10 +457,7 @@ components:
         remark:
           type: string
         files:
-          type: object
-          properties:
-            documentFileId:
-              type: string
+          $ref: "#/components/schemas/File"
     Address:
       type: object
       properties:
@@ -571,10 +638,7 @@ components:
           type: string
           nullable: true
         files:
-          type: object
-          properties:
-            documentFileId:
-              type: string
+          $ref: "#/components/schemas/File"
     DeliveryNote:
       type: object
       properties:
@@ -632,10 +696,136 @@ components:
           type: string
           nullable: true
         files:
-          type: object
-          properties:
-            documentFileId:
-              type: string
+          $ref: "#/components/schemas/File"
+    DownPaymentInvoice:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          nullable: false
+        organizationId:
+          type: string
+          format: uuid
+        createdDate:
+          type: string
+          format: date-time
+        updatedDate:
+          type: string
+          format: date-time
+        version:
+          type: integer
+          nullable: false
+        language:
+          type: string
+          enum: [de, en]
+        archived:
+          type: boolean
+        voucherStatus:
+          type: string
+          enum: [draft, open, paid, voided]
+        voucherNumber:
+          type: string
+        voucherDate:
+          type: string
+          format: date-time
+        dueDate:
+          type: string
+          format: date-time
+        address:
+          $ref: "#/components/schemas/VoucherAddress"
+        lineItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/LineItem"
+        totalPrice:
+          $ref: "#/components/schemas/TotalPrice"
+        taxAmounts:
+          type: array
+          items:
+            $ref: "#/components/schemas/TaxAmount"
+        taxConditions:
+          $ref: "#/components/schemas/TaxConditions"
+        paymentConditions:
+          $ref: "#/components/schemas/PaymentConditions"
+        shippingConditions:
+          $ref: "#/components/schemas/ShippingConditions"
+        closingInvoiceId:
+          type: string
+          format: uuid
+          nullable: true
+        relatedVouchers:
+          type: array
+          items:
+            $ref: "#/components/schemas/RelatedVoucher"
+        title:
+          type: string
+          nullable: true
+        introduction:
+          type: string
+          nullable: true
+        remark:
+          type: string
+          nullable: true
+        files:
+          $ref: "#/components/schemas/File"
+    Dunning:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          nullable: false
+        organizationId:
+          type: string
+          format: uuid
+        createdDate:
+          type: string
+          format: date-time
+        updatedDate:
+          type: string
+          format: date-time
+        version:
+          type: integer
+          nullable: false
+        language:
+          type: string
+          enum: [de, en]
+        archived:
+          type: boolean
+        voucherStatus:
+          type: string
+          enum: [draft, open, paid, voided]
+        voucherNumber:
+          type: string
+        voucherDate:
+          type: string
+          format: date-time
+        address:
+          $ref: "#/components/schemas/VoucherAddress"
+        lineItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/LineItem"
+        taxConditions:
+          $ref: "#/components/schemas/TaxConditions"
+        shippingConditions:
+          $ref: "#/components/schemas/ShippingConditions"
+        relatedVouchers:
+          type: array
+          items:
+            $ref: "#/components/schemas/RelatedVoucher"
+        title:
+          type: string
+          nullable: true
+        introduction:
+          type: string
+          nullable: true
+        remark:
+          type: string
+          nullable: true
+        files:
+          $ref: "#/components/schemas/File"
     XRechnung:
       type: object
       properties:
@@ -721,6 +911,74 @@ components:
           type: number
         lineItemAmount:
           type: number
+    OrderConfirmation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          nullable: false
+        organizationId:
+          type: string
+          format: uuid
+        createdDate:
+          type: string
+          format: date-time
+        updatedDate:
+          type: string
+          format: date-time
+        version:
+          type: integer
+          nullable: false
+        language:
+          type: string
+          enum: [de, en]
+        archived:
+          type: boolean
+        voucherStatus:
+          type: string
+          enum: [draft, open, paid, voided]
+        voucherNumber:
+          type: string
+        voucherDate:
+          type: string
+          format: date-time
+        address:
+          $ref: "#/components/schemas/VoucherAddress"
+        lineItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/LineItem"
+        totalPrice:
+          $ref: "#/components/schemas/TotalPrice"
+        taxAmounts:
+          type: array
+          items:
+            $ref: "#/components/schemas/TaxAmount"
+        taxConditions:
+          $ref: "#/components/schemas/TaxConditions"
+        paymentConditions:
+          $ref: "#/components/schemas/PaymentConditions"
+        shippingConditions:
+          $ref: "#/components/schemas/ShippingConditions"
+        relatedVouchers:
+          type: array
+          items:
+            $ref: "#/components/schemas/RelatedVoucher"
+        title:
+          type: string
+          nullable: true
+        introduction:
+          type: string
+          nullable: true
+        remark:
+          type: string
+          nullable: true
+        deliveryTerms:
+          type: string
+          nullable: true
+        files:
+          $ref: "#/components/schemas/File"
     UnitPrice:
       type: object
       properties:
@@ -829,6 +1087,11 @@ components:
         voucherNumber:
           type: string
         voucherType:
+          type: string
+    File:
+      type: object
+      properties:
+        documentFileId:
           type: string
     SortProperties:
       type: object
