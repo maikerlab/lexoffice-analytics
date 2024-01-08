@@ -13,62 +13,77 @@
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Voucher {
-    #[serde(rename = "id", skip_serializing_if = "Option::is_none")]
-    pub id: Option<uuid::Uuid>,
+    #[serde(rename = "id")]
+    pub id: uuid::Uuid,
+    #[serde(rename = "organizationId", skip_serializing_if = "Option::is_none")]
+    pub organization_id: Option<uuid::Uuid>,
     /// Voucher Type
-    #[serde(rename = "voucherType")]
-    pub voucher_type: VoucherType,
+    #[serde(rename = "type")]
+    pub r#type: Type,
     /// Status
     #[serde(rename = "voucherStatus")]
     pub voucher_status: VoucherStatus,
     #[serde(rename = "voucherNumber", skip_serializing_if = "Option::is_none")]
     pub voucher_number: Option<String>,
-    #[serde(rename = "voucherDate", skip_serializing_if = "Option::is_none")]
-    pub voucher_date: Option<String>,
+    #[serde(rename = "voucherDate")]
+    pub voucher_date: String,
+    #[serde(rename = "shippingDate", skip_serializing_if = "Option::is_none")]
+    pub shipping_date: Option<String>,
+    #[serde(rename = "dueDate", skip_serializing_if = "Option::is_none")]
+    pub due_date: Option<String>,
+    #[serde(rename = "totalGrossAmount", skip_serializing_if = "Option::is_none")]
+    pub total_gross_amount: Option<f32>,
+    #[serde(rename = "totalTaxAmount", skip_serializing_if = "Option::is_none")]
+    pub total_tax_amount: Option<f32>,
+    #[serde(rename = "taxType", skip_serializing_if = "Option::is_none")]
+    pub tax_type: Option<TaxType>,
+    #[serde(rename = "useCollectiveContact", skip_serializing_if = "Option::is_none")]
+    pub use_collective_contact: Option<bool>,
+    #[serde(rename = "contactId", skip_serializing_if = "Option::is_none")]
+    pub contact_id: Option<uuid::Uuid>,
+    #[serde(rename = "remark", skip_serializing_if = "Option::is_none")]
+    pub remark: Option<String>,
+    #[serde(rename = "voucherItems", skip_serializing_if = "Option::is_none")]
+    pub voucher_items: Option<Vec<crate::models::VoucherVoucherItemsInner>>,
+    #[serde(rename = "files", skip_serializing_if = "Option::is_none")]
+    pub files: Option<Vec<crate::models::File>>,
     #[serde(rename = "createdDate", skip_serializing_if = "Option::is_none")]
     pub created_date: Option<String>,
     #[serde(rename = "updatedDate", skip_serializing_if = "Option::is_none")]
     pub updated_date: Option<String>,
-    #[serde(rename = "dueDate", skip_serializing_if = "Option::is_none")]
-    pub due_date: Option<String>,
-    #[serde(rename = "contactId", skip_serializing_if = "Option::is_none")]
-    pub contact_id: Option<uuid::Uuid>,
-    #[serde(rename = "contactName", skip_serializing_if = "Option::is_none")]
-    pub contact_name: Option<String>,
-    #[serde(rename = "totalAmount", skip_serializing_if = "Option::is_none")]
-    pub total_amount: Option<f32>,
-    #[serde(rename = "openAmount", skip_serializing_if = "Option::is_none")]
-    pub open_amount: Option<f32>,
-    #[serde(rename = "currency", skip_serializing_if = "Option::is_none")]
-    pub currency: Option<Currency>,
-    #[serde(rename = "archived", skip_serializing_if = "Option::is_none")]
-    pub archived: Option<bool>,
+    #[serde(rename = "version", skip_serializing_if = "Option::is_none")]
+    pub version: Option<i32>,
 }
 
 impl Voucher {
-    pub fn new(voucher_type: VoucherType, voucher_status: VoucherStatus) -> Voucher {
+    pub fn new(id: uuid::Uuid, r#type: Type, voucher_status: VoucherStatus, voucher_date: String) -> Voucher {
         Voucher {
-            id: None,
-            voucher_type,
+            id,
+            organization_id: None,
+            r#type,
             voucher_status,
             voucher_number: None,
-            voucher_date: None,
+            voucher_date,
+            shipping_date: None,
+            due_date: None,
+            total_gross_amount: None,
+            total_tax_amount: None,
+            tax_type: None,
+            use_collective_contact: None,
+            contact_id: None,
+            remark: None,
+            voucher_items: None,
+            files: None,
             created_date: None,
             updated_date: None,
-            due_date: None,
-            contact_id: None,
-            contact_name: None,
-            total_amount: None,
-            open_amount: None,
-            currency: None,
-            archived: None,
+            version: None,
         }
     }
 }
 
 /// Voucher Type
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
-pub enum VoucherType {
+pub enum Type {
     #[serde(rename = "salesinvoice")]
     Salesinvoice,
     #[serde(rename = "salescreditnote")]
@@ -77,30 +92,16 @@ pub enum VoucherType {
     Purchaseinvoice,
     #[serde(rename = "purchasecreditnote")]
     Purchasecreditnote,
-    #[serde(rename = "invoice")]
-    Invoice,
-    #[serde(rename = "downpaymentinvoice")]
-    Downpaymentinvoice,
-    #[serde(rename = "creditnote")]
-    Creditnote,
-    #[serde(rename = "orderconfirmation")]
-    Orderconfirmation,
-    #[serde(rename = "quotation")]
-    Quotation,
-    #[serde(rename = "deliverynote")]
-    Deliverynote,
 }
 
-impl Default for VoucherType {
-    fn default() -> VoucherType {
+impl Default for Type {
+    fn default() -> Type {
         Self::Salesinvoice
     }
 }
 /// Status
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
 pub enum VoucherStatus {
-    #[serde(rename = "draft")]
-    Draft,
     #[serde(rename = "open")]
     Open,
     #[serde(rename = "paid")]
@@ -113,29 +114,27 @@ pub enum VoucherStatus {
     Transferred,
     #[serde(rename = "sepadebit")]
     Sepadebit,
-    #[serde(rename = "overdue")]
-    Overdue,
-    #[serde(rename = "accepted")]
-    Accepted,
-    #[serde(rename = "rejected")]
-    Rejected,
+    #[serde(rename = "unchecked")]
+    Unchecked,
 }
 
 impl Default for VoucherStatus {
     fn default() -> VoucherStatus {
-        Self::Draft
+        Self::Open
     }
 }
 /// 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
-pub enum Currency {
-    #[serde(rename = "EUR")]
-    Eur,
+pub enum TaxType {
+    #[serde(rename = "net")]
+    Net,
+    #[serde(rename = "gross")]
+    Gross,
 }
 
-impl Default for Currency {
-    fn default() -> Currency {
-        Self::Eur
+impl Default for TaxType {
+    fn default() -> TaxType {
+        Self::Net
     }
 }
 

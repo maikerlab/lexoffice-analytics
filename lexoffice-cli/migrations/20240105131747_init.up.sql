@@ -38,7 +38,7 @@ CREATE TABLE invoices (
 );
 
 CREATE TABLE addresses (
-  id INT PRIMARY KEY,
+  id INT NOT NULL PRIMARY KEY,
   contact_id VARCHAR,
   name VARCHAR,
   supplement VARCHAR,
@@ -49,14 +49,14 @@ CREATE TABLE addresses (
 );
 
 CREATE TABLE products (
-  id VARCHAR PRIMARY KEY,
+  id VARCHAR NOT NULL PRIMARY KEY,
   type VARCHAR,
   name VARCHAR,
   description VARCHAR
 );
 
 CREATE TABLE line_items (
-  id SERIAL PRIMARY KEY,
+  id SERIAL NOT NULL PRIMARY KEY,
   product_id VARCHAR,
   voucher_id VARCHAR,
   quantity INTEGER,

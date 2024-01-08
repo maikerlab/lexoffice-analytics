@@ -17,8 +17,8 @@ pub struct TaxConditions {
     pub tax_type: Option<TaxType>,
     #[serde(rename = "taxSubType", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
     pub tax_sub_type: Option<Option<TaxSubType>>,
-    #[serde(rename = "taxTypeNote", skip_serializing_if = "Option::is_none")]
-    pub tax_type_note: Option<String>,
+    #[serde(rename = "taxTypeNote", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
+    pub tax_type_note: Option<Option<String>>,
 }
 
 impl TaxConditions {

@@ -1,27 +1,47 @@
 pub mod db;
 pub mod lexoffice;
 
+use db::models::{DbInvoice, DbVoucher};
 use dotenvy::dotenv;
-use openapi::{
-    apis::configuration::Configuration,
-    models::{
-        voucher::{VoucherStatus, VoucherType},
-        Voucher,
-    },
-};
-use sqlx::{types::Uuid, PgPool};
-use std::env;
+use openapi::{apis::configuration::Configuration, models::VoucherlistVoucher};
+use sqlx::PgPool;
+use std::{env, error::Error};
 
-async fn sync_vouchers(pool: &PgPool, vouchers: Vec<Voucher>) {
+struct App {
+    api_conf: Configuration,
+    db_pool: PgPool,
+}
+
+impl App {
+    fn new(api_key: String, pool: PgPool) -> Self {
+        let mut conf = Configuration::default();
+        conf.bearer_access_token = Some(api_key);
+        App {
+            api_conf: conf,
+            db_pool: pool,
+        }
+    }
+
+    async fn run(self) -> Result<(), Box<dyn Error>> {
+        sync_lexoffice(&self.db_pool).await;
+        Ok(())
+    }
+}
+
+async fn sync_vouchers(pool: &PgPool, vouchers: Vec<VoucherlistVoucher>) {
     for voucher in vouchers {
-        db::insert_voucher(pool, voucher).await.ok();
+        let db_voucher = DbVoucher::from(voucher);
+        db::insert_voucher(pool, db_voucher).await.ok();
     }
 }
 
 async fn sync_invoice(config: &Configuration, pool: &PgPool, invoice_id: String) {
     let result = lexoffice::get_invoice(config, invoice_id.clone())
         .await
-        .and_then(move |invoice| Ok(db::insert_invoice(pool, invoice)));
+        .and_then(move |invoice| {
+            let db_invoice = DbInvoice::from(invoice);
+            Ok(db::insert_invoice(pool, db_invoice))
+        });
     match result {
         Ok(_) => println!("Synced invoice {}", invoice_id),
         Err(e) => println!("Error syncing invoice: {:?}", e),
@@ -47,7 +67,6 @@ async fn sync_lexoffice(pool: &PgPool) {
                 );
                 let vouchers = voucher_list.content.unwrap_or(vec![]);
                 sync_vouchers(pool, vouchers.clone()).await;
-
                 for v in &vouchers[..3] {
                     println!("Got Voucher: {:?}", v.contact_name.as_ref());
                     println!(" - Voucher Date: {:?}", v.voucher_date.as_ref());
@@ -71,7 +90,7 @@ async fn sync_lexoffice(pool: &PgPool) {
 }
 
 async fn show_vouchers(pool: &PgPool) {
-    let all_vouchers = db::get_all_vouchers(pool).await;
+    let all_vouchers = db::get_all_vouchers(pool).await.unwrap_or(vec![]);
 
     println!("Displaying {} vouchers", all_vouchers.len());
     for voucher in all_vouchers {

@@ -15,7 +15,7 @@ Name | Type | Description | Notes
 **voucher_number** | Option<**String**> |  | [optional]
 **voucher_date** | Option<**String**> |  | [optional]
 **due_date** | Option<**String**> |  | [optional]
-**address** | Option<[**crate::models::Address**](Address.md)> |  | [optional]
+**address** | Option<[**crate::models::VoucherAddress**](VoucherAddress.md)> |  | [optional]
 **x_rechnung** | Option<[**crate::models::InvoiceXRechnung**](Invoice_xRechnung.md)> |  | [optional]
 **line_items** | Option<[**Vec<crate::models::LineItem>**](LineItem.md)> |  | [optional]
 **total_price** | Option<[**crate::models::TotalPrice**](TotalPrice.md)> |  | [optional]
@@ -31,7 +31,7 @@ Name | Type | Description | Notes
 **title** | Option<**String**> |  | [optional]
 **introduction** | Option<**String**> |  | [optional]
 **remark** | Option<**String**> |  | [optional]
-**files** | Option<[**crate::models::InvoiceFiles**](Invoice_files.md)> |  | [optional]
+**files** | Option<[**crate::models::File**](File.md)> |  | [optional]
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

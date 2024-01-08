@@ -4,7 +4,8 @@ pub mod utils;
 use openapi::{
     apis::{
         configuration::Configuration,
-        default_api::{invoices_id_get, voucherlist_get, InvoicesIdGetError, VoucherlistGetError},
+        invoices_api::{invoices_id_get, InvoicesIdGetError},
+        vouchers_api::{voucherlist_get, VoucherlistGetError},
         Error,
     },
     models::{Invoice, VoucherList},

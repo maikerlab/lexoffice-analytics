@@ -90,6 +90,18 @@ pub fn parse_deep_object(prefix: &str, value: &serde_json::Value) -> Vec<(String
     unimplemented!("Only objects are supported with style=deepObject")
 }
 
-pub mod default_api;
+pub mod contacts_api;
+pub mod countries_api;
+pub mod credit_notes_api;
+pub mod delivery_notes_api;
+pub mod down_payment_invoices_api;
+pub mod dunnings_api;
+pub mod invoices_api;
+pub mod order_confirmations_api;
+pub mod payments_api;
+pub mod posting_categories_api;
+pub mod profile_api;
+pub mod quotations_api;
+pub mod vouchers_api;
 
 pub mod configuration;

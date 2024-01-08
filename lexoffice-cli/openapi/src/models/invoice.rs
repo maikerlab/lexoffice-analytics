@@ -36,7 +36,7 @@ pub struct Invoice {
     #[serde(rename = "dueDate", skip_serializing_if = "Option::is_none")]
     pub due_date: Option<String>,
     #[serde(rename = "address", skip_serializing_if = "Option::is_none")]
-    pub address: Option<Box<crate::models::Address>>,
+    pub address: Option<Box<crate::models::VoucherAddress>>,
     #[serde(rename = "xRechnung", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
     pub x_rechnung: Option<Option<Box<crate::models::InvoiceXRechnung>>>,
     #[serde(rename = "lineItems", skip_serializing_if = "Option::is_none")]
@@ -68,7 +68,7 @@ pub struct Invoice {
     #[serde(rename = "remark", skip_serializing_if = "Option::is_none")]
     pub remark: Option<String>,
     #[serde(rename = "files", skip_serializing_if = "Option::is_none")]
-    pub files: Option<Box<crate::models::InvoiceFiles>>,
+    pub files: Option<Box<crate::models::File>>,
 }
 
 impl Invoice {

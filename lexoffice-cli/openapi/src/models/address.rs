@@ -13,51 +13,28 @@
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Address {
-    #[serde(rename = "contactId", skip_serializing_if = "Option::is_none")]
-    pub contact_id: Option<uuid::Uuid>,
-    #[serde(rename = "name", skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
     #[serde(rename = "supplement", skip_serializing_if = "Option::is_none")]
     pub supplement: Option<String>,
     #[serde(rename = "street", skip_serializing_if = "Option::is_none")]
     pub street: Option<String>,
-    #[serde(rename = "city", skip_serializing_if = "Option::is_none")]
-    pub city: Option<String>,
     #[serde(rename = "zip", skip_serializing_if = "Option::is_none")]
     pub zip: Option<String>,
+    #[serde(rename = "city", skip_serializing_if = "Option::is_none")]
+    pub city: Option<String>,
     #[serde(rename = "countryCode", skip_serializing_if = "Option::is_none")]
-    pub country_code: Option<CountryCode>,
-    #[serde(rename = "contactPerson", skip_serializing_if = "Option::is_none")]
-    pub contact_person: Option<String>,
+    pub country_code: Option<String>,
 }
 
 impl Address {
     pub fn new() -> Address {
         Address {
-            contact_id: None,
-            name: None,
             supplement: None,
             street: None,
-            city: None,
             zip: None,
+            city: None,
             country_code: None,
-            contact_person: None,
         }
     }
 }
 
-/// 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Serialize, Deserialize)]
-pub enum CountryCode {
-    #[serde(rename = "DE")]
-    De,
-    #[serde(rename = "AT")]
-    At,
-}
-
-impl Default for CountryCode {
-    fn default() -> CountryCode {
-        Self::De
-    }
-}
 

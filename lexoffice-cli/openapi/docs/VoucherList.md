@@ -4,7 +4,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**content** | Option<[**Vec<crate::models::Voucher>**](Voucher.md)> |  | [optional]
+**content** | Option<[**Vec<crate::models::VoucherlistVoucher>**](VoucherlistVoucher.md)> |  | [optional]
 **first** | Option<**bool**> |  | [optional]
 **last** | Option<**bool**> |  | [optional]
 **total_pages** | Option<**i32**> |  | [optional]
