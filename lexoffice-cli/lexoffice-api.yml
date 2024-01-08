@@ -49,6 +49,16 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CreditNote"
+  /delivery-notes/{id}:
+    get:
+      summary: Find delivery note by ID
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeliveryNote"
   /voucherlist:
     get:
       summary: Retrieve Voucherlist
