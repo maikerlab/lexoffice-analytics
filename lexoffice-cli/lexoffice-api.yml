@@ -209,7 +209,7 @@ paths:
     get:
       summary: Retrieve Voucherlist
       tags:
-        - Voucherlist
+        - Vouchers
       parameters:
         - in: query
           name: voucherType
@@ -331,6 +331,42 @@ paths:
                 $ref: "#/components/schemas/ErrorMsg"
               example:
                 message: Unauthorized
+  /vouchers/{id}:
+    get:
+      summary: Find a voucher by ID
+      tags:
+        - Vouchers
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Voucher"
+  /vouchers:
+    get:
+      summary: Filter voucher by voucherNumber
+      tags:
+        - Vouchers
+      parameters:
+        - in: query
+          name: voucherNumber
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Voucher"
   /invoices/{id}:
     get:
       summary: Find invoice by ID
@@ -370,7 +406,7 @@ components:
         content:
           type: array
           items:
-            $ref: "#/components/schemas/Voucher"
+            $ref: "#/components/schemas/VoucherlistVoucher"
         first:
           type: boolean
         last:
@@ -389,7 +425,7 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/SortProperties"
-    Voucher:
+    VoucherlistVoucher:
       required:
         - voucherType
         - voucherStatus
@@ -454,6 +490,91 @@ components:
           enum: [EUR]
         archived:
           type: boolean
+    Voucher:
+      required:
+        - id
+        - type
+        - voucherStatus
+        - voucherDate
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        organizationId:
+          type: string
+          format: uuid
+        type:
+          type: string
+          description: Voucher Type
+          enum:
+            - salesinvoice
+            - salescreditnote
+            - purchaseinvoice
+            - purchasecreditnote
+        voucherStatus:
+          type: string
+          description: Status
+          enum:
+            - open
+            - paid
+            - paidoff
+            - voided
+            - transferred
+            - sepadebit
+            - unchecked
+        voucherNumber:
+          type: string
+        voucherDate:
+          type: string
+          format: date-time
+        shippingDate:
+          type: string
+          format: date-time
+        dueDate:
+          type: string
+          format: date-time
+        totalGrossAmount:
+          type: number
+        totalTaxAmount:
+          type: number
+        taxType:
+          type: string
+          enum:
+            - net
+            - gross
+        useCollectiveContact:
+          type: boolean
+        contactId:
+          type: string
+          format: uuid
+        remark:
+          type: string
+        voucherItems:
+          type: array
+          items:
+            properties:
+              amount:
+                type: number
+              taxAmount:
+                type: number
+              taxRatePercent:
+                type: number
+              categoryId:
+                type: string
+                format: uuid
+        files:
+          type: array
+          items:
+            $ref: "#/components/schemas/File"
+        createdDate:
+          type: string
+          format: date-time
+        updatedDate:
+          type: string
+          format: date-time
+        version:
+          type: integer
     Invoice:
       type: object
       properties:
