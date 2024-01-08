@@ -7,8 +7,29 @@ servers:
 security:
   - ApiKeyAuth: []
 paths:
+  /contact/{id}:
+    get:
+      summary: Find contact by ID
+      tags:
+        - Contacts
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contact"
   /voucherlist:
     get:
+      summary: Retrieve Voucherlist
+      tags:
+        - Voucherlist
       parameters:
         - in: query
           name: voucherType
@@ -132,6 +153,9 @@ paths:
                 message: Unauthorized
   /invoices/{id}:
     get:
+      summary: Find invoice by ID
+      tags:
+        - Invoices
       parameters:
         - in: path
           name: id
@@ -284,7 +308,7 @@ components:
           type: string
           format: date-time
         address:
-          $ref: "#/components/schemas/Address"
+          $ref: "#/components/schemas/InvoiceAddress"
         xRechnung:
           type: object
           nullable: true
@@ -336,6 +360,20 @@ components:
     Address:
       type: object
       properties:
+        supplement:
+          type: string
+        street:
+          type: string
+        zip:
+          type: string
+        city:
+          type: string
+        countryCode:
+          type: string
+          enum: [DE, AT]
+    InvoiceAddress:
+      type: object
+      properties:
         contactId:
           type: string
           format: uuid
@@ -354,6 +392,142 @@ components:
           enum: [DE, AT]
         contactPerson:
           type: string
+    Contact:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          nullable: false
+        organizationId:
+          type: string
+          format: uuid
+        version:
+          type: number
+          nullable: false
+        roles:
+          $ref: "#/components/schemas/RolesDetails"
+        company:
+          $ref: "#/components/schemas/CompanyDetails"
+        person:
+          $ref: "#/components/schemas/PersonDetails"
+        addresses:
+          type: object
+          properties:
+            billing:
+              type: array
+              items:
+                $ref: "#/components/schemas/Address"
+            shipping:
+              type: array
+              items:
+                $ref: "#/components/schemas/Address"
+        xRechnung:
+          $ref: "#/components/schemas/XRechnung"
+        emailAddresses:
+          type: object
+          properties:
+            business:
+              type: array
+              items:
+                type: string
+            office:
+              type: array
+              items:
+                type: string
+            private:
+              type: array
+              items:
+                type: string
+            other:
+              type: array
+              items:
+                type: string
+        phoneNumbers:
+          type: object
+          properties:
+            business:
+              type: array
+              items:
+                type: string
+            office:
+              type: array
+              items:
+                type: string
+            private:
+              type: array
+              items:
+                type: string
+            other:
+              type: array
+              items:
+                type: string
+        note:
+          type: string
+        archived:
+          type: boolean
+    XRechnung:
+      type: object
+      properties:
+        buyerReference:
+          type: string
+        vendorNumberAtCustomer:
+          type: string
+    RolesDetails:
+      type: object
+      properties:
+        customer:
+          $ref: "#/components/schemas/CustomerOrVendorDetails"
+        vendor:
+          $ref: "#/components/schemas/CustomerOrVendorDetails"
+    CompanyDetails:
+      type: object
+      properties:
+        allowTaxFreeInvoices:
+          type: boolean
+          nullable: false
+        name:
+          type: string
+          nullable: false
+        taxNumber:
+          type: string
+        vatRegistrationId:
+          type: string
+        contactPersons:
+          type: array
+          items:
+            $ref: "#/components/schemas/CompanyContactPerson"
+    PersonDetails:
+      type: object
+      properties:
+        salutation:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+    CompanyContactPerson:
+      type: object
+      properties:
+        salutation:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        primary:
+          type: boolean
+        emailAddress:
+          type: string
+        phoneNumber:
+          type: string
+    CustomerOrVendorDetails:
+      type: object
+      nullable: true
+      properties:
+        number:
+          type: number
+          nullable: false
     LineItem:
       type: object
       properties:
