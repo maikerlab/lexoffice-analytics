@@ -39,6 +39,16 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/Country"
+  /credit-notes/{id}:
+    get:
+      summary: Find credit note by ID
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreditNote"
   /voucherlist:
     get:
       summary: Retrieve Voucherlist
@@ -322,7 +332,7 @@ components:
           type: string
           format: date-time
         address:
-          $ref: "#/components/schemas/InvoiceAddress"
+          $ref: "#/components/schemas/VoucherAddress"
         xRechnung:
           type: object
           nullable: true
@@ -384,9 +394,9 @@ components:
           type: string
         countryCode:
           type: string
-          enum: [DE, AT]
-    InvoiceAddress:
+    VoucherAddress:
       type: object
+      description: Address for CreditNote/DeliveryNote/Invoice
       properties:
         contactId:
           type: string
@@ -395,6 +405,7 @@ components:
           type: string
         supplement:
           type: string
+          nullable: true
         street:
           type: string
         city:
@@ -403,7 +414,6 @@ components:
           type: string
         countryCode:
           type: string
-          enum: [DE, AT]
         contactPerson:
           type: string
     Contact:
@@ -491,6 +501,131 @@ components:
           type: string
         taxClassification:
           type: string
+    CreditNote:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          nullable: false
+        organizationId:
+          type: string
+          format: uuid
+        createdDate:
+          type: string
+          format: date-time
+        updatedDate:
+          type: string
+          format: date-time
+        version:
+          type: integer
+          nullable: false
+        language:
+          type: string
+          enum: [de, en]
+        archived:
+          type: boolean
+        voucherStatus:
+          type: string
+          enum: [draft, open, paid, voided]
+        voucherNumber:
+          type: string
+        voucherDate:
+          type: string
+          format: date-time
+        address:
+          $ref: "#/components/schemas/VoucherAddress"
+        lineItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/LineItem"
+        totalPrice:
+          $ref: "#/components/schemas/TotalPrice"
+        taxAmounts:
+          type: array
+          items:
+            $ref: "#/components/schemas/TaxAmount"
+        taxConditions:
+          $ref: "#/components/schemas/TaxConditions"
+        relatedVouchers:
+          type: array
+          items:
+            $ref: "#/components/schemas/RelatedVoucher"
+        title:
+          type: string
+          nullable: true
+        introduction:
+          type: string
+          nullable: true
+        remark:
+          type: string
+          nullable: true
+        files:
+          type: object
+          properties:
+            documentFileId:
+              type: string
+    DeliveryNote:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          nullable: false
+        organizationId:
+          type: string
+          format: uuid
+        createdDate:
+          type: string
+          format: date-time
+        updatedDate:
+          type: string
+          format: date-time
+        version:
+          type: integer
+          nullable: false
+        language:
+          type: string
+          enum: [de, en]
+        archived:
+          type: boolean
+        voucherStatus:
+          type: string
+          enum: [draft, open, paid, voided]
+        voucherNumber:
+          type: string
+        voucherDate:
+          type: string
+          format: date-time
+        address:
+          $ref: "#/components/schemas/VoucherAddress"
+        lineItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/LineItem"
+        taxConditions:
+          $ref: "#/components/schemas/TaxConditions"
+        relatedVouchers:
+          type: array
+          items:
+            $ref: "#/components/schemas/RelatedVoucher"
+        title:
+          type: string
+          nullable: true
+        introduction:
+          type: string
+          nullable: true
+        remark:
+          type: string
+          nullable: true
+        deliveryTerms:
+          type: string
+          nullable: true
+        files:
+          type: object
+          properties:
+            documentFileId:
+              type: string
     XRechnung:
       type: object
       properties:
@@ -641,6 +776,7 @@ components:
           nullable: true
         taxTypeNote:
           type: string
+          nullable: true
     PaymentConditions:
       type: object
       properties:
