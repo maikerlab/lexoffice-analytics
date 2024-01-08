@@ -129,6 +129,24 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/OrderConfirmation"
+  /payments/{voucherId}:
+    get:
+      summary: Find a payment by Voucher ID
+      tags:
+        - Payments
+      parameters:
+        - in: path
+          name: voucherId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
   /voucherlist:
     get:
       summary: Retrieve Voucherlist
@@ -1045,6 +1063,47 @@ components:
         taxTypeNote:
           type: string
           nullable: true
+    Payment:
+      type: object
+      properties:
+        openAmount:
+          type: number
+        currency:
+          type: string
+          enum: [EUR]
+        paymentStatus:
+          type: string
+          enum:
+            - balanced
+            - openRevenue
+            - openExpense
+        voucherType:
+          type: string
+          enum:
+            - salesinvoice
+            - salescreditnote
+            - purchaseinvoice
+            - purchasecreditnote
+            - invoice
+            - downpaymentinvoice
+            - creditnote
+        voucherStatus:
+          type: string
+          enum:
+            - open
+            - paid
+            - paidoff
+            - voided
+            - transferred
+            - sepadebit
+        paidDate:
+          type: string
+          format: date-time
+          nullable: true
+        paymentItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/PaymentItem"
     PaymentConditions:
       type: object
       properties:
@@ -1061,6 +1120,27 @@ components:
               type: number
             discountRange:
               type: integer
+    PaymentItem:
+      type: object
+      properties:
+        paymentItemType:
+          type: string
+          enum:
+            - partPaymentFinancialTransaction
+            - partPaymentCreditNote
+            - partPaymentCashBox
+            - manualPayment
+            - cashDiscount
+            - dunningCosts
+            - currencyConversion
+        postingDate:
+          type: string
+          format: date-time
+        amount:
+          type: number
+        currency:
+          type: string
+          enum: [EUR]
     ShippingConditions:
       type: object
       properties:
