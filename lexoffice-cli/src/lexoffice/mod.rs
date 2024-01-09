@@ -36,6 +36,7 @@ pub async fn get_invoice(
 
 pub async fn get_voucherlist(
     config: &Configuration,
+    voucher_type: String,
     page: i32,
     size: i32,
 ) -> Result<VoucherList, Error<VoucherlistGetError>> {
@@ -44,7 +45,7 @@ pub async fn get_voucherlist(
 
     voucherlist_get(
         config,
-        "any",
+        voucher_type.as_str(),
         "any",
         None,
         None,

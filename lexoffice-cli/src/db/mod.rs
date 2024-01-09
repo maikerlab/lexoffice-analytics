@@ -1,7 +1,11 @@
 pub mod models;
 use self::models::{DbInvoice, DbVoucher};
 use openapi::models::*;
-use sqlx::{postgres::PgPoolOptions, types::chrono::NaiveDateTime, Error, PgPool};
+use sqlx::{
+    postgres::PgPoolOptions,
+    types::chrono::{DateTime, NaiveDateTime},
+    Error, PgPool,
+};
 use std::{env, str::FromStr};
 
 // Convert Lexoffice Invoice to database entity
@@ -32,12 +36,15 @@ impl From<Invoice> for DbInvoice {
 
 impl From<VoucherlistVoucher> for DbVoucher {
     fn from(v: VoucherlistVoucher) -> Self {
-        DbVoucher {
+        println!("from VoucherlistVoucher: {:?}", v);
+        let voucher_date =
+            DateTime::parse_from_rfc3339(v.voucher_date.unwrap_or_default().as_str());
+        let db_v = DbVoucher {
             id: v.id.unwrap_or_default().to_string(),
             voucher_type: Some(format!("{:?}", v.voucher_type).to_lowercase()),
             voucher_status: Some(format!("{:?}", v.voucher_status).to_lowercase()),
             voucher_number: v.voucher_number,
-            voucher_date: NaiveDateTime::from_str(v.voucher_date.unwrap_or_default().as_str()).ok(),
+            voucher_date: Some(voucher_date.unwrap().naive_utc()),
             created_date: NaiveDateTime::from_str(v.created_date.unwrap().as_str()).ok(),
             updated_date: NaiveDateTime::from_str(v.updated_date.unwrap().as_str()).ok(),
             due_date: NaiveDateTime::from_str(v.due_date.unwrap_or_default().as_str()).ok(),
@@ -47,7 +54,9 @@ impl From<VoucherlistVoucher> for DbVoucher {
             open_amount: None,
             currency: None,
             archived: None,
-        }
+        };
+        println!("to DbVoucher: {:?}", db_v);
+        db_v
     }
 }
 
@@ -99,22 +108,61 @@ pub async fn get_all_invoices(pool: &PgPool) -> Result<Vec<DbInvoice>, Error> {
         .await
 }
 
+fn parse_datetime(datetime_str: String) -> Option<NaiveDateTime> {
+    let parsed_result = DateTime::parse_from_rfc3339(datetime_str.as_str());
+    match parsed_result {
+        Ok(dt) => Some(dt.naive_utc()),
+        Err(_) => None,
+    }
+}
+
 pub async fn insert_voucher(pool: &PgPool, voucher: DbVoucher) -> Result<usize, Error> {
-    let _rec = sqlx::query!(
+    let rec = sqlx::query!(
         r#"
-INSERT INTO vouchers ( id, voucher_type, voucher_status, voucher_number )
-VALUES ( $1, $2, $3, $4 )
+INSERT INTO vouchers ( id, voucher_type, voucher_status, voucher_number, voucher_date, created_date, updated_date, due_date, contact_id, contact_name, total_amount, open_amount, currency, archived )
+VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14 )
 RETURNING id
         "#,
         voucher.id,
         voucher.voucher_type,
         voucher.voucher_status,
-        voucher.voucher_number
+        voucher.voucher_number,
+        voucher.voucher_date,
+        voucher.created_date,
+        voucher.updated_date,
+        voucher.due_date,
+        voucher.contact_id,
+        voucher.contact_name,
+        voucher.total_amount,
+        voucher.open_amount,
+        voucher.currency,
+        voucher.archived
     )
     .fetch_one(pool)
     .await?;
 
+    println!("Inserted voucher with ID: {:?}", rec.id);
+
     Ok(1)
+}
+
+pub async fn voucher_exists(pool: &PgPool, voucher_id: String) -> bool {
+    let result = sqlx::query!(
+        r#"
+SELECT EXISTS(SELECT 1 FROM vouchers WHERE id=$1)
+        "#,
+        voucher_id
+    )
+    .fetch_one(pool)
+    .await;
+
+    //println!("voucher_exists: {:?}", rec.exists.unwrap_or(false));
+    let res = match result {
+        Ok(rec) => rec.exists.unwrap(),
+        Err(_) => false,
+    };
+
+    res
 }
 
 pub async fn insert_invoice(pool: &PgPool, invoice: DbInvoice) -> Result<usize, Error> {

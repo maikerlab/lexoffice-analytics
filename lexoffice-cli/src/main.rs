@@ -1,6 +1,7 @@
 pub mod db;
 pub mod lexoffice;
 
+use clap::{arg, command, Command};
 use db::models::{DbInvoice, DbVoucher};
 use dotenvy::dotenv;
 use openapi::{apis::configuration::Configuration, models::VoucherlistVoucher};
@@ -23,13 +24,23 @@ impl App {
     }
 
     async fn run(self) -> Result<(), Box<dyn Error>> {
-        sync_lexoffice(&self.db_pool).await;
+        //sync_lexoffice(&self.db_pool).await;
         Ok(())
     }
 }
 
 async fn sync_vouchers(pool: &PgPool, vouchers: Vec<VoucherlistVoucher>) {
     for voucher in vouchers {
+        if voucher.id.is_none() || !db::voucher_exists(pool, voucher.id.unwrap().to_string()).await
+        {
+            if voucher.voucher_number.is_some() {
+                println!(
+                    "Insert voucher into DB: {:?}",
+                    voucher.clone().voucher_number.unwrap()
+                );
+            }
+        }
+
         let db_voucher = DbVoucher::from(voucher);
         db::insert_voucher(pool, db_voucher).await.ok();
     }
@@ -48,7 +59,7 @@ async fn sync_invoice(config: &Configuration, pool: &PgPool, invoice_id: String)
     }
 }
 
-async fn sync_lexoffice(pool: &PgPool) {
+async fn sync_lexoffice(pool: &PgPool, types: Vec<String>) {
     let api_key = env::var("LEXOFFICE_APIKEY").expect("'LEXOFFICE_APIKEY' must bet set!");
     let config = lexoffice::get_config(api_key);
 
@@ -56,7 +67,8 @@ async fn sync_lexoffice(pool: &PgPool) {
     let mut current_page = 1;
     let page_size = 250;
     loop {
-        let res = lexoffice::get_voucherlist(&config, current_page, page_size).await;
+        let res =
+            lexoffice::get_voucherlist(&config, types.join(","), current_page, page_size).await;
         match res {
             Err(e) => println!("error getting voucherlist: {}", e),
             Ok(voucher_list) => {
@@ -66,11 +78,7 @@ async fn sync_lexoffice(pool: &PgPool) {
                     voucher_list.total_elements.unwrap()
                 );
                 let vouchers = voucher_list.content.unwrap_or(vec![]);
-                sync_vouchers(pool, vouchers.clone()).await;
-                for v in &vouchers[..3] {
-                    println!("Got Voucher: {:?}", v.contact_name.as_ref());
-                    println!(" - Voucher Date: {:?}", v.voucher_date.as_ref());
-                }
+                sync_vouchers(pool, vouchers).await;
 
                 if voucher_list.last.unwrap_or(false) {
                     break;
@@ -115,30 +123,79 @@ async fn show_vouchers(pool: &PgPool) {
             "Number: {}",
             invoice.voucher_number.unwrap_or("n/a".to_string())
         );
-        println!("Updated at: {:?}", invoice.updated_date.unwrap());
+        println!("Updated at: {:?}", invoice.updated_date);
     }
 }
 
 #[tokio::main]
 async fn main() {
     dotenv().ok();
-    let args: Vec<String> = env::args().collect();
-    if args.len() < 2 {
-        panic!("Usage: lexoffice-cli [sync|show]");
-    }
+
+    let matches = command!()
+        .propagate_version(true)
+        .subcommand_required(true)
+        .arg_required_else_help(true)
+        .subcommand(
+            Command::new("sync")
+                .about("Sync a voucher type or all vouchers stored at lexoffice")
+                .arg(arg!([VOUCHER_TYPE]).required(false).default_value("all")),
+        )
+        .subcommand(
+            Command::new("show")
+                .about("Show locally stored data")
+                .arg(arg!([VOUCHER_TYPE]).required(false).default_value("all")),
+        )
+        .get_matches();
 
     let db_pool = db::connect_db().await.unwrap();
     let _ = sqlx::migrate!().run(&db_pool).await;
 
-    let cmd = &args[1];
-    if cmd == "sync" {
-        println!("Starting lexoffice sync...");
-        sync_lexoffice(&db_pool).await;
-    } else if cmd == "show" {
-        println!("Showing database entries...\n");
-        show_vouchers(&db_pool).await;
-    } else {
-        panic!("Unknown command: {}", cmd);
-    }
+    match matches.subcommand() {
+        Some(("sync", sub_matches)) => {
+            let types_arg = sub_matches
+                .get_one::<String>("VOUCHER_TYPE")
+                .unwrap()
+                .to_string();
+            match types_arg.as_str() {
+                "all" => {
+                    let voucher_types = [
+                        "salesinvoice".to_string(),
+                        "salescreditnote".to_string(),
+                        "purchaseinvoice".to_string(),
+                        "purchasecreditnote".to_string(),
+                        "invoice".to_string(),
+                        "downpaymentinvoice".to_string(),
+                        "creditnote".to_string(),
+                        "orderconfirmation".to_string(),
+                        "quotation".to_string(),
+                        "deliverynote".to_string(),
+                    ]
+                    .to_vec();
+                    println!("Syncing all vouchers...");
+                    sync_lexoffice(&db_pool, voucher_types).await;
+                }
+                "invoices" => {
+                    let voucher_types = ["invoice".to_string()].to_vec();
+                    println!("Syncing invoices...");
+                    sync_lexoffice(&db_pool, voucher_types).await;
+                }
+                _ => unreachable!(
+                    "Unknown or unsupported argument for voucher types: {}",
+                    types_arg
+                ),
+            }
+        }
+        Some(("show", sub_matches)) => {
+            let types_arg = sub_matches
+                .get_one::<String>("VOUCHER_TYPE")
+                .unwrap()
+                .to_string();
+            let voucher_types = [types_arg.clone()].to_vec();
+            println!("Showing vouchers: {:?}\n", voucher_types);
+            show_vouchers(&db_pool).await;
+        }
+        _ => unreachable!("Cannot parse subcommand"),
+    };
+
     println!("Finished! Exiting...");
 }
