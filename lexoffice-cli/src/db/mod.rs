@@ -7,7 +7,6 @@ use sqlx::{
     types::chrono::{DateTime, NaiveDateTime},
     Error, PgPool,
 };
-use std::env;
 
 fn parse_datetime(datetime_str: String) -> Option<NaiveDateTime> {
     let parsed_result = DateTime::parse_from_rfc3339(datetime_str.as_str());
@@ -74,56 +73,67 @@ impl From<VoucherlistVoucher> for DbVoucher {
     }
 }
 
-pub async fn connect_db() -> Result<PgPool, Error> {
-    let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-
-    PgPoolOptions::new()
-        .max_connections(5)
-        .connect(&db_url)
-        .await
+pub struct LexofficeDb {
+    db_pool: PgPool,
 }
 
-pub async fn get_all_vouchers(pool: &PgPool) -> Result<Vec<DbVoucher>, Error> {
-    sqlx::query_as!(
+impl LexofficeDb {
+    pub async fn new(db_url: String) -> Self {
+        let db_pool = PgPoolOptions::new()
+            .max_connections(5)
+            .connect(db_url.as_str())
+            .await
+            .expect("Error connecting to database");
+
+        Self { db_pool }
+    }
+
+    pub async fn migrate(&self) -> Result<(), Error> {
+        let _ = sqlx::migrate!().run(&self.db_pool).await;
+        Ok(())
+    }
+
+    pub async fn get_all_vouchers(&self) -> Result<Vec<DbVoucher>, Error> {
+        sqlx::query_as!(
         DbVoucher,
 r#"
     SELECT id, archived, contact_id, contact_name, voucher_date, created_date, due_date, updated_date, voucher_number, voucher_type, voucher_status, total_amount, open_amount, currency FROM vouchers
 "#
     )
-    .fetch_all(pool).await
-}
+    .fetch_all(&self.db_pool).await
+    }
 
-pub async fn get_voucher_by_id(pool: &PgPool, voucher_id: String) -> Result<DbVoucher, Error> {
-    sqlx::query_as!(
-        DbVoucher,
-        r#"select * from vouchers where id = $1"#,
-        voucher_id
-    )
-    .fetch_one(pool)
-    .await
-}
-
-pub async fn get_vouchers_by_type(
-    pool: &PgPool,
-    voucher_type: String,
-) -> Result<Vec<DbVoucher>, Error> {
-    sqlx::query_as!(
-        DbVoucher,
-        r#"select * from vouchers where voucher_type = $1"#,
-        voucher_type
-    )
-    .fetch_all(pool)
-    .await
-}
-
-pub async fn get_all_invoices(pool: &PgPool) -> Result<Vec<DbInvoice>, Error> {
-    sqlx::query_as!(DbInvoice, r#"select * from invoices"#)
-        .fetch_all(pool)
+    pub async fn get_voucher_by_id(&self, voucher_id: String) -> Result<DbVoucher, Error> {
+        sqlx::query_as!(
+            DbVoucher,
+            r#"select * from vouchers where id = $1"#,
+            voucher_id
+        )
+        .fetch_one(&self.db_pool)
         .await
-}
+    }
 
-pub async fn insert_voucher(pool: &PgPool, voucher: DbVoucher) -> Result<usize, Error> {
-    let rec = sqlx::query!(
+    pub async fn get_vouchers_by_type(
+        &self,
+        voucher_type: String,
+    ) -> Result<Vec<DbVoucher>, Error> {
+        sqlx::query_as!(
+            DbVoucher,
+            r#"select * from vouchers where voucher_type = $1"#,
+            voucher_type
+        )
+        .fetch_all(&self.db_pool)
+        .await
+    }
+
+    pub async fn get_all_invoices(&self) -> Result<Vec<DbInvoice>, Error> {
+        sqlx::query_as!(DbInvoice, r#"select * from invoices"#)
+            .fetch_all(&self.db_pool)
+            .await
+    }
+
+    pub async fn insert_voucher(&self, voucher: DbVoucher) -> Result<usize, Error> {
+        let rec = sqlx::query!(
         r#"
 INSERT INTO vouchers ( id, voucher_type, voucher_status, voucher_number, voucher_date, created_date, updated_date, due_date, contact_id, contact_name, total_amount, open_amount, currency, archived )
 VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14 )
@@ -144,55 +154,35 @@ RETURNING id
         voucher.currency,
         voucher.archived == 1
     )
-    .fetch_one(pool)
+    .fetch_one(&self.db_pool)
     .await?;
 
-    println!("Inserted voucher with ID: {:?}", rec.id);
+        println!("Inserted voucher with ID: {:?}", rec.id);
 
-    Ok(1)
-}
+        Ok(1)
+    }
 
-pub async fn voucher_exists(pool: &PgPool, voucher_id: String) -> bool {
-    let result = sqlx::query!(
-        r#"
+    pub async fn voucher_exists(&self, voucher_id: String) -> bool {
+        let result = sqlx::query!(
+            r#"
 SELECT EXISTS(SELECT 1 FROM vouchers WHERE id=$1)
         "#,
-        voucher_id
-    )
-    .fetch_one(pool)
-    .await;
+            voucher_id
+        )
+        .fetch_one(&self.db_pool)
+        .await;
 
-    //println!("voucher_exists: {:?}", rec.exists.unwrap_or(false));
-    let res = match result {
-        Ok(rec) => rec.exists.unwrap(),
-        Err(_) => false,
-    };
+        //println!("voucher_exists: {:?}", rec.exists.unwrap_or(false));
+        let res = match result {
+            Ok(rec) => rec.exists.unwrap(),
+            Err(_) => false,
+        };
 
-    res
-}
+        res
+    }
 
-pub async fn insert_invoice(pool: &PgPool, invoice: DbInvoice) -> Result<String, Error> {
-    /*
-        pub id: String,
-    pub organization_id: Option<String>,
-    pub created_date: Option<NaiveDateTime>,
-    pub updated_date: Option<NaiveDateTime>,
-    pub version: Option<i32>,
-    pub language: Option<String>,
-    pub archived: Option<bool>,
-    pub voucher_status: Option<String>,
-    pub voucher_number: Option<String>,
-    pub voucher_date: Option<NaiveDateTime>,
-    pub due_date: Option<NaiveDateTime>,
-    pub address_id: Option<String>,
-    pub address_name: Option<String>,
-    pub address_supplement: Option<String>,
-    pub address_street: Option<String>,
-    pub address_city: Option<String>,
-    pub address_zip: Option<String>,
-    pub address_countrycode: Option<String>,
-     */
-    let rec = sqlx::query!(
+    pub async fn insert_invoice(&self, invoice: DbInvoice) -> Result<String, Error> {
+        let rec = sqlx::query!(
         r#"
 INSERT INTO invoices ( id, organization_id, created_date, updated_date, version, language, archived, voucher_status, voucher_number, voucher_date, due_date, address_id, address_name, address_supplement, address_street, address_city, address_zip, address_countrycode )
 VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18 )
@@ -217,10 +207,11 @@ RETURNING id
         invoice.address_zip,
         invoice.address_countrycode
     )
-    .fetch_one(pool)
+    .fetch_one(&self.db_pool)
     .await?;
 
-    Ok(rec.id)
+        Ok(rec.id)
+    }
 }
 
 #[cfg(test)]

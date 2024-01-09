@@ -4,34 +4,20 @@ pub mod lexoffice;
 use clap::{arg, command, Command};
 use db::models::{DbInvoice, DbVoucher};
 use dotenvy::dotenv;
-use openapi::{apis::configuration::Configuration, models::VoucherlistVoucher};
-use sqlx::PgPool;
-use std::{env, error::Error};
+use lexoffice::LexofficeApi;
+use openapi::models::VoucherlistVoucher;
+use std::env;
+
+use crate::db::LexofficeDb;
 
 struct App {
-    api_conf: Configuration,
-    db_pool: PgPool,
+    api: LexofficeApi,
+    db: LexofficeDb,
 }
 
-impl App {
-    fn new(api_key: String, pool: PgPool) -> Self {
-        let mut conf = Configuration::default();
-        conf.bearer_access_token = Some(api_key);
-        App {
-            api_conf: conf,
-            db_pool: pool,
-        }
-    }
-
-    async fn run(self) -> Result<(), Box<dyn Error>> {
-        //sync_lexoffice(&self.db_pool).await;
-        Ok(())
-    }
-}
-
-async fn sync_vouchers(pool: &PgPool, vouchers: Vec<VoucherlistVoucher>) {
+async fn sync_vouchers(app: &App, vouchers: Vec<VoucherlistVoucher>) {
     for voucher in vouchers {
-        if !db::voucher_exists(pool, voucher.id.to_string()).await {
+        if !app.db.voucher_exists(voucher.id.to_string()).await {
             println!(
                 "Insert voucher into DB: {:?}",
                 voucher.clone().voucher_number
@@ -39,17 +25,17 @@ async fn sync_vouchers(pool: &PgPool, vouchers: Vec<VoucherlistVoucher>) {
         }
 
         let db_voucher = DbVoucher::from(voucher);
-        db::insert_voucher(pool, db_voucher).await.ok();
+        app.db.insert_voucher(db_voucher).await.ok();
     }
 }
 
-async fn sync_invoice(config: &Configuration, pool: &PgPool, invoice_id: String) {
-    let result = lexoffice::get_invoice(config, invoice_id.clone()).await;
+async fn sync_invoice(app: &App, invoice_id: String) {
+    let result = app.api.get_invoice(invoice_id.clone()).await;
 
     match result {
         Ok(ref invoice) => {
             let db_invoice = DbInvoice::from(invoice.to_owned());
-            let inserted_id = db::insert_invoice(pool, db_invoice).await;
+            let inserted_id = app.db.insert_invoice(db_invoice).await;
             match inserted_id {
                 Ok(invoice_id) => println!("Inserted invoice with ID: {}", invoice_id),
                 Err(e) => println!("Error inserting invoice: {:?}", e),
@@ -59,16 +45,15 @@ async fn sync_invoice(config: &Configuration, pool: &PgPool, invoice_id: String)
     }
 }
 
-async fn sync_lexoffice(pool: &PgPool, types: Vec<String>) {
-    let api_key = env::var("LEXOFFICE_APIKEY").expect("'LEXOFFICE_APIKEY' must bet set!");
-    let config = lexoffice::get_config(api_key);
-
+async fn sync_lexoffice(app: &App, types: Vec<String>) {
     // First get all vouchers from voucherlist endpoint and save into DB
     let mut current_page = 1;
     let page_size = 250;
     loop {
-        let res =
-            lexoffice::get_voucherlist(&config, types.join(","), current_page, page_size).await;
+        let res = app
+            .api
+            .get_voucherlist(types.join(","), current_page, page_size)
+            .await;
         match res {
             Err(e) => println!("error getting voucherlist: {}", e),
             Ok(voucher_list) => {
@@ -77,7 +62,7 @@ async fn sync_lexoffice(pool: &PgPool, types: Vec<String>) {
                     voucher_list.number_of_elements, voucher_list.total_elements
                 );
                 let vouchers = voucher_list.content;
-                sync_vouchers(pool, vouchers).await;
+                sync_vouchers(app, vouchers).await;
 
                 if voucher_list.last {
                     break;
@@ -88,16 +73,18 @@ async fn sync_lexoffice(pool: &PgPool, types: Vec<String>) {
     }
 
     // Get saved vouchers from DB and get+save invoices
-    let invoices = db::get_vouchers_by_type(pool, "invoice".to_string())
+    let invoices = app
+        .db
+        .get_vouchers_by_type("invoice".to_string())
         .await
         .unwrap_or(vec![]);
     for voucher in invoices {
-        sync_invoice(&config, pool, voucher.id).await;
+        sync_invoice(app, voucher.id).await;
     }
 }
 
-async fn show_vouchers(pool: &PgPool) {
-    let all_vouchers = db::get_all_vouchers(pool).await.unwrap_or(vec![]);
+async fn show_vouchers(app: &App) {
+    let all_vouchers = app.db.get_all_vouchers().await.unwrap_or(vec![]);
 
     println!("Displaying {} vouchers", all_vouchers.len());
     for voucher in all_vouchers {
@@ -110,7 +97,7 @@ async fn show_vouchers(pool: &PgPool) {
         );
     }
 
-    let all_invoices = db::get_all_invoices(pool).await.unwrap_or(vec![]);
+    let all_invoices = app.db.get_all_invoices().await.unwrap_or(vec![]);
     println!("\n\nDisplaying {} invoices", all_invoices.len());
     for invoice in all_invoices {
         println!("-----------");
@@ -123,6 +110,8 @@ async fn show_vouchers(pool: &PgPool) {
 #[tokio::main]
 async fn main() {
     dotenv().ok();
+    let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let api_key = env::var("LEXOFFICE_APIKEY").expect("LEXOFFICE_APIKEY must be set");
 
     let matches = command!()
         .propagate_version(true)
@@ -140,8 +129,15 @@ async fn main() {
         )
         .get_matches();
 
-    let db_pool = db::connect_db().await.unwrap();
-    let _ = sqlx::migrate!().run(&db_pool).await;
+    // Connect + migrate database
+    let db = LexofficeDb::new(db_url).await;
+    db.migrate().await.expect("Error while migrating database");
+
+    // Create the lexoffice API using the API Key
+    let api = LexofficeApi::new(api_key);
+
+    // ... then put together in our app
+    let app = App { db, api };
 
     match matches.subcommand() {
         Some(("sync", sub_matches)) => {
@@ -165,12 +161,12 @@ async fn main() {
                     ]
                     .to_vec();
                     println!("Syncing all vouchers...");
-                    sync_lexoffice(&db_pool, voucher_types).await;
+                    sync_lexoffice(&app, voucher_types).await;
                 }
                 "invoices" => {
                     let voucher_types = ["invoice".to_string()].to_vec();
                     println!("Syncing invoices...");
-                    sync_lexoffice(&db_pool, voucher_types).await;
+                    sync_lexoffice(&app, voucher_types).await;
                 }
                 _ => unreachable!(
                     "Unknown or unsupported argument for voucher types: {}",
@@ -185,7 +181,7 @@ async fn main() {
                 .to_string();
             let voucher_types = [types_arg.clone()].to_vec();
             println!("Showing vouchers: {:?}\n", voucher_types);
-            show_vouchers(&db_pool).await;
+            show_vouchers(&app).await;
         }
         _ => unreachable!("Cannot parse subcommand"),
     };

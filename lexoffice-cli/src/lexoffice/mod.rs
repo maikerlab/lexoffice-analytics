@@ -83,52 +83,55 @@ impl EnumToString for invoice::Language {
 
 pub const MAX_REQUESTS_PER_SECOND: f32 = 2.0;
 
-pub fn get_config(api_key: String) -> Configuration {
-    let mut conf = Configuration::default();
-    conf.bearer_access_token = Some(api_key);
-    conf
-}
-
 fn request_delay() {
     sleep(Duration::from_millis(utils::get_api_rate_ms(
         MAX_REQUESTS_PER_SECOND,
     )));
 }
 
-pub async fn get_invoice(
-    config: &Configuration,
-    id: String,
-) -> Result<Invoice, Error<InvoicesIdGetError>> {
-    request_delay();
-    let response = invoices_id_get(config, id.as_str()).await;
-    response
+pub struct LexofficeApi {
+    conf: Configuration,
 }
 
-pub async fn get_voucherlist(
-    config: &Configuration,
-    voucher_type: String,
-    page: i32,
-    size: i32,
-) -> Result<VoucherList, Error<VoucherlistGetError>> {
-    request_delay();
-    println!("syncing voucherlist (page {})", page);
+impl LexofficeApi {
+    pub fn new(api_key: String) -> Self {
+        let mut api_config = Configuration::default();
+        api_config.bearer_access_token = Some(api_key);
+        Self { conf: api_config }
+    }
 
-    voucherlist_get(
-        config,
-        voucher_type.as_str(),
-        "any",
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        Some(page),
-        Some(size),
-        Some("voucherDate,DESC"),
-    )
-    .await
+    pub async fn get_voucherlist(
+        &self,
+        voucher_type: String,
+        page: i32,
+        size: i32,
+    ) -> Result<VoucherList, Error<VoucherlistGetError>> {
+        request_delay();
+        println!("syncing voucherlist (page {})", page);
+
+        voucherlist_get(
+            &self.conf,
+            voucher_type.as_str(),
+            "any",
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            Some(page),
+            Some(size),
+            Some("voucherDate,DESC"),
+        )
+        .await
+    }
+
+    pub async fn get_invoice(&self, id: String) -> Result<Invoice, Error<InvoicesIdGetError>> {
+        request_delay();
+        let response = invoices_id_get(&self.conf, id.as_str()).await;
+        response
+    }
 }
