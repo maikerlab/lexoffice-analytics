@@ -13,8 +13,8 @@
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct OrganizationPaymentConditions {
-    #[serde(rename = "id", skip_serializing_if = "Option::is_none")]
-    pub id: Option<uuid::Uuid>,
+    #[serde(rename = "id")]
+    pub id: uuid::Uuid,
     #[serde(rename = "organizationDefault", skip_serializing_if = "Option::is_none")]
     pub organization_default: Option<bool>,
     #[serde(rename = "paymentTermLabelTemplate", skip_serializing_if = "Option::is_none")]
@@ -26,9 +26,9 @@ pub struct OrganizationPaymentConditions {
 }
 
 impl OrganizationPaymentConditions {
-    pub fn new() -> OrganizationPaymentConditions {
+    pub fn new(id: uuid::Uuid) -> OrganizationPaymentConditions {
         OrganizationPaymentConditions {
-            id: None,
+            id,
             organization_default: None,
             payment_term_label_template: None,
             payment_term_duration: None,

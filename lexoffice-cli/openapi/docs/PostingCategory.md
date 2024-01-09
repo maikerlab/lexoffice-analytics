@@ -4,9 +4,9 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**id** | Option<[**uuid::Uuid**](uuid::Uuid.md)> |  | [optional]
-**name** | Option<**String**> |  | [optional]
-**r#type** | Option<**String**> |  | [optional]
+**id** | [**uuid::Uuid**](uuid::Uuid.md) |  | 
+**name** | **String** |  | 
+**r#type** | **String** |  | 
 **contact_required** | Option<**bool**> |  | [optional]
 **split_allowed** | Option<**bool**> |  | [optional]
 **group_name** | Option<**String**> |  | [optional]

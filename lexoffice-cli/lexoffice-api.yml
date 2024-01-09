@@ -402,6 +402,16 @@ components:
   schemas:
     VoucherList:
       type: object
+      required:
+        - content
+        - first
+        - last
+        - totalPages
+        - totalElements
+        - numberOfElements
+        - size
+        - number
+        - sort
       properties:
         content:
           type: array
@@ -427,8 +437,14 @@ components:
             $ref: "#/components/schemas/SortProperties"
     VoucherlistVoucher:
       required:
+        - id
         - voucherType
         - voucherStatus
+        - voucherNumber
+        - voucherDate
+        - createdDate
+        - updatedDate
+        - archived
       type: object
       properties:
         id:
@@ -577,6 +593,21 @@ components:
           type: integer
     Invoice:
       type: object
+      required:
+        - id
+        - createdDate
+        - updatedDate
+        - version
+        - language
+        - archived
+        - voucherStatus
+        - voucherNumber
+        - voucherDate
+        - dueDate
+        - address
+        - lineItems
+        - totalPrice
+        - closingInvoice
       properties:
         id:
           type: string
@@ -671,6 +702,9 @@ components:
     VoucherAddress:
       type: object
       description: Address for CreditNote/DeliveryNote/Invoice
+      required:
+        - name
+        - countryCode
       properties:
         contactId:
           type: string
@@ -693,17 +727,19 @@ components:
           type: string
     Contact:
       type: object
+      required:
+        - id
+        - version
+        - archived
       properties:
         id:
           type: string
           format: uuid
-          nullable: false
         organizationId:
           type: string
           format: uuid
         version:
-          type: number
-          nullable: false
+          type: integer
         roles:
           $ref: "#/components/schemas/RolesDetails"
         company:
@@ -767,6 +803,8 @@ components:
           type: boolean
     Country:
       type: object
+      required:
+        - countryCode
       properties:
         countryCode:
           type: string
@@ -778,6 +816,17 @@ components:
           type: string
     CreditNote:
       type: object
+      required:
+        - id
+        - createdDate
+        - updatedDate
+        - version
+        - language
+        - archived
+        - voucherStatus
+        - voucherNumber
+        - voucherDate
+        - lineItems
       properties:
         id:
           type: string
@@ -839,6 +888,17 @@ components:
           $ref: "#/components/schemas/File"
     DeliveryNote:
       type: object
+      required:
+        - id
+        - createdDate
+        - updatedDate
+        - version
+        - language
+        - archived
+        - voucherStatus
+        - voucherNumber
+        - voucherDate
+        - lineItems
       properties:
         id:
           type: string
@@ -897,11 +957,21 @@ components:
           $ref: "#/components/schemas/File"
     DownPaymentInvoice:
       type: object
+      required:
+        - id
+        - createdDate
+        - updatedDate
+        - version
+        - language
+        - archived
+        - voucherStatus
+        - voucherNumber
+        - voucherDate
+        - lineItems
       properties:
         id:
           type: string
           format: uuid
-          nullable: false
         organizationId:
           type: string
           format: uuid
@@ -913,7 +983,6 @@ components:
           format: date-time
         version:
           type: integer
-          nullable: false
         language:
           type: string
           enum: [de, en]
@@ -969,6 +1038,17 @@ components:
           $ref: "#/components/schemas/File"
     Dunning:
       type: object
+      required:
+        - id
+        - createdDate
+        - updatedDate
+        - version
+        - language
+        - archived
+        - voucherStatus
+        - voucherNumber
+        - voucherDate
+        - lineItems
       properties:
         id:
           type: string
@@ -1066,6 +1146,10 @@ components:
           type: string
     PostingCategory:
       type: object
+      required:
+        - id
+        - name
+        - type
       properties:
         id:
           type: string
@@ -1107,6 +1191,10 @@ components:
           nullable: false
     LineItem:
       type: object
+      required:
+        - type
+        - name
+        - quantity
       properties:
         id:
           type: string
@@ -1130,6 +1218,10 @@ components:
           type: number
     LineItemQuotation:
       type: object
+      required:
+        - type
+        - name
+        - quantity
       properties:
         id:
           type: string
@@ -1161,11 +1253,21 @@ components:
           type: boolean
     OrderConfirmation:
       type: object
+      required:
+        - id
+        - createdDate
+        - updatedDate
+        - version
+        - language
+        - archived
+        - voucherStatus
+        - voucherNumber
+        - voucherDate
+        - lineItems
       properties:
         id:
           type: string
           format: uuid
-          nullable: false
         organizationId:
           type: string
           format: uuid
@@ -1177,7 +1279,6 @@ components:
           format: date-time
         version:
           type: integer
-          nullable: false
         language:
           type: string
           enum: [de, en]
@@ -1229,6 +1330,17 @@ components:
           $ref: "#/components/schemas/File"
     Quotation:
       type: object
+      required:
+        - id
+        - createdDate
+        - updatedDate
+        - version
+        - language
+        - archived
+        - voucherStatus
+        - voucherNumber
+        - voucherDate
+        - lineItems
       properties:
         id:
           type: string
@@ -1295,6 +1407,11 @@ components:
           $ref: "#/components/schemas/File"
     UnitPrice:
       type: object
+      required:
+        - currency
+        - netAmount
+        - grossAmount
+        - taxRatePercentage
       properties:
         currency:
           type: string
@@ -1307,6 +1424,15 @@ components:
           type: number
     UserProfile:
       type: object
+      required:
+        - organizationId
+        - companyName
+        - created
+        - connectionId
+        - taxType
+        - distanceSalesPrinciple
+        - businessFeatures
+        - smallBusiness
       properties:
         organizationId:
           type: string
@@ -1374,6 +1500,10 @@ components:
           type: number
     TaxAmount:
       type: object
+      required:
+        - taxRatePercentage
+        - taxAmount
+        - netAmount
       properties:
         taxRatePercentage:
           type: number
@@ -1383,6 +1513,8 @@ components:
           type: number
     TaxConditions:
       type: object
+      required:
+        - taxType
       properties:
         taxType:
           type: string
@@ -1407,6 +1539,11 @@ components:
           nullable: true
     Payment:
       type: object
+      required:
+        - currency
+        - paymentStatus
+        - voucherType
+        - voucherStatus
       properties:
         openAmount:
           type: number
@@ -1464,6 +1601,8 @@ components:
               type: integer
     OrganizationPaymentConditions:
       type: object
+      required:
+        - id
       properties:
         id:
           type: string
@@ -1483,6 +1622,10 @@ components:
               type: integer
     PaymentItem:
       type: object
+      required:
+        - paymentItemType
+        - amount
+        - currency
       properties:
         paymentItemType:
           type: string
@@ -1504,6 +1647,8 @@ components:
           enum: [EUR]
     ShippingConditions:
       type: object
+      required:
+        - shippingType
       properties:
         shippingDate:
           type: string
@@ -1521,6 +1666,10 @@ components:
             - none
     RelatedVoucher:
       type: object
+      required:
+        - id
+        - voucherNumber
+        - voucherType
       properties:
         id:
           type: string
@@ -1531,11 +1680,19 @@ components:
           type: string
     File:
       type: object
+      required:
+        - documentFileId
       properties:
         documentFileId:
           type: string
     SortProperties:
       type: object
+      required:
+        - direction
+        - property
+        - ignoreCase
+        - nullHandling
+        - ascending
       properties:
         direction:
           type: string

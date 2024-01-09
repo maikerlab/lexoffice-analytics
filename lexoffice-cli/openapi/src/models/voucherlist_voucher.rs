@@ -13,22 +13,22 @@
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct VoucherlistVoucher {
-    #[serde(rename = "id", skip_serializing_if = "Option::is_none")]
-    pub id: Option<uuid::Uuid>,
+    #[serde(rename = "id")]
+    pub id: uuid::Uuid,
     /// Voucher Type
     #[serde(rename = "voucherType")]
     pub voucher_type: VoucherType,
     /// Status
     #[serde(rename = "voucherStatus")]
     pub voucher_status: VoucherStatus,
-    #[serde(rename = "voucherNumber", skip_serializing_if = "Option::is_none")]
-    pub voucher_number: Option<String>,
-    #[serde(rename = "voucherDate", skip_serializing_if = "Option::is_none")]
-    pub voucher_date: Option<String>,
-    #[serde(rename = "createdDate", skip_serializing_if = "Option::is_none")]
-    pub created_date: Option<String>,
-    #[serde(rename = "updatedDate", skip_serializing_if = "Option::is_none")]
-    pub updated_date: Option<String>,
+    #[serde(rename = "voucherNumber")]
+    pub voucher_number: String,
+    #[serde(rename = "voucherDate")]
+    pub voucher_date: String,
+    #[serde(rename = "createdDate")]
+    pub created_date: String,
+    #[serde(rename = "updatedDate")]
+    pub updated_date: String,
     #[serde(rename = "dueDate", skip_serializing_if = "Option::is_none")]
     pub due_date: Option<String>,
     #[serde(rename = "contactId", skip_serializing_if = "Option::is_none")]
@@ -41,27 +41,27 @@ pub struct VoucherlistVoucher {
     pub open_amount: Option<f32>,
     #[serde(rename = "currency", skip_serializing_if = "Option::is_none")]
     pub currency: Option<Currency>,
-    #[serde(rename = "archived", skip_serializing_if = "Option::is_none")]
-    pub archived: Option<bool>,
+    #[serde(rename = "archived")]
+    pub archived: bool,
 }
 
 impl VoucherlistVoucher {
-    pub fn new(voucher_type: VoucherType, voucher_status: VoucherStatus) -> VoucherlistVoucher {
+    pub fn new(id: uuid::Uuid, voucher_type: VoucherType, voucher_status: VoucherStatus, voucher_number: String, voucher_date: String, created_date: String, updated_date: String, archived: bool) -> VoucherlistVoucher {
         VoucherlistVoucher {
-            id: None,
+            id,
             voucher_type,
             voucher_status,
-            voucher_number: None,
-            voucher_date: None,
-            created_date: None,
-            updated_date: None,
+            voucher_number,
+            voucher_date,
+            created_date,
+            updated_date,
             due_date: None,
             contact_id: None,
             contact_name: None,
             total_amount: None,
             open_amount: None,
             currency: None,
-            archived: None,
+            archived,
         }
     }
 }

@@ -13,12 +13,12 @@
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Contact {
-    #[serde(rename = "id", skip_serializing_if = "Option::is_none")]
-    pub id: Option<uuid::Uuid>,
+    #[serde(rename = "id")]
+    pub id: uuid::Uuid,
     #[serde(rename = "organizationId", skip_serializing_if = "Option::is_none")]
     pub organization_id: Option<uuid::Uuid>,
-    #[serde(rename = "version", skip_serializing_if = "Option::is_none")]
-    pub version: Option<f32>,
+    #[serde(rename = "version")]
+    pub version: i32,
     #[serde(rename = "roles", skip_serializing_if = "Option::is_none")]
     pub roles: Option<Box<crate::models::RolesDetails>>,
     #[serde(rename = "company", skip_serializing_if = "Option::is_none")]
@@ -35,16 +35,16 @@ pub struct Contact {
     pub phone_numbers: Option<Box<crate::models::ContactEmailAddresses>>,
     #[serde(rename = "note", skip_serializing_if = "Option::is_none")]
     pub note: Option<String>,
-    #[serde(rename = "archived", skip_serializing_if = "Option::is_none")]
-    pub archived: Option<bool>,
+    #[serde(rename = "archived")]
+    pub archived: bool,
 }
 
 impl Contact {
-    pub fn new() -> Contact {
+    pub fn new(id: uuid::Uuid, version: i32, archived: bool) -> Contact {
         Contact {
-            id: None,
+            id,
             organization_id: None,
-            version: None,
+            version,
             roles: None,
             company: None,
             person: None,
@@ -53,7 +53,7 @@ impl Contact {
             email_addresses: None,
             phone_numbers: None,
             note: None,
-            archived: None,
+            archived,
         }
     }
 }

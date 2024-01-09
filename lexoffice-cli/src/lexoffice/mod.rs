@@ -72,6 +72,15 @@ impl EnumToString for invoice::VoucherStatus {
     }
 }
 
+impl EnumToString for invoice::Language {
+    fn enum_to_string(&self) -> String {
+        match self {
+            invoice::Language::De => "DE".to_string(),
+            invoice::Language::En => "EN".to_string(),
+        }
+    }
+}
+
 pub const MAX_REQUESTS_PER_SECOND: f32 = 2.0;
 
 pub fn get_config(api_key: String) -> Configuration {

@@ -13,23 +13,23 @@
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UnitPrice {
-    #[serde(rename = "currency", skip_serializing_if = "Option::is_none")]
-    pub currency: Option<Currency>,
-    #[serde(rename = "netAmount", skip_serializing_if = "Option::is_none")]
-    pub net_amount: Option<f32>,
-    #[serde(rename = "grossAmount", skip_serializing_if = "Option::is_none")]
-    pub gross_amount: Option<f32>,
-    #[serde(rename = "taxRatePercentage", skip_serializing_if = "Option::is_none")]
-    pub tax_rate_percentage: Option<f32>,
+    #[serde(rename = "currency")]
+    pub currency: Currency,
+    #[serde(rename = "netAmount")]
+    pub net_amount: f32,
+    #[serde(rename = "grossAmount")]
+    pub gross_amount: f32,
+    #[serde(rename = "taxRatePercentage")]
+    pub tax_rate_percentage: f32,
 }
 
 impl UnitPrice {
-    pub fn new() -> UnitPrice {
+    pub fn new(currency: Currency, net_amount: f32, gross_amount: f32, tax_rate_percentage: f32) -> UnitPrice {
         UnitPrice {
-            currency: None,
-            net_amount: None,
-            gross_amount: None,
-            tax_rate_percentage: None,
+            currency,
+            net_amount,
+            gross_amount,
+            tax_rate_percentage,
         }
     }
 }

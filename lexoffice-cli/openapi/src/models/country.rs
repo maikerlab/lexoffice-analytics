@@ -13,8 +13,8 @@
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Country {
-    #[serde(rename = "countryCode", skip_serializing_if = "Option::is_none")]
-    pub country_code: Option<String>,
+    #[serde(rename = "countryCode")]
+    pub country_code: String,
     #[serde(rename = "countryNameDE", skip_serializing_if = "Option::is_none")]
     pub country_name_de: Option<String>,
     #[serde(rename = "countryNameEN", skip_serializing_if = "Option::is_none")]
@@ -24,9 +24,9 @@ pub struct Country {
 }
 
 impl Country {
-    pub fn new() -> Country {
+    pub fn new(country_code: String) -> Country {
         Country {
-            country_code: None,
+            country_code,
             country_name_de: None,
             country_name_en: None,
             tax_classification: None,

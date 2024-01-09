@@ -4,7 +4,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**id** | Option<[**uuid::Uuid**](uuid::Uuid.md)> |  | [optional]
+**id** | [**uuid::Uuid**](uuid::Uuid.md) |  | 
 **organization_default** | Option<**bool**> |  | [optional]
 **payment_term_label_template** | Option<**String**> |  | [optional]
 **payment_term_duration** | Option<**i32**> |  | [optional]

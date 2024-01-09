@@ -17,16 +17,16 @@ pub struct ShippingConditions {
     pub shipping_date: Option<String>,
     #[serde(rename = "shippingEndDate", skip_serializing_if = "Option::is_none")]
     pub shipping_end_date: Option<String>,
-    #[serde(rename = "shippingType", skip_serializing_if = "Option::is_none")]
-    pub shipping_type: Option<ShippingType>,
+    #[serde(rename = "shippingType")]
+    pub shipping_type: ShippingType,
 }
 
 impl ShippingConditions {
-    pub fn new() -> ShippingConditions {
+    pub fn new(shipping_type: ShippingType) -> ShippingConditions {
         ShippingConditions {
             shipping_date: None,
             shipping_end_date: None,
-            shipping_type: None,
+            shipping_type,
         }
     }
 }

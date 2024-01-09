@@ -13,32 +13,32 @@
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Quotation {
-    #[serde(rename = "id", skip_serializing_if = "Option::is_none")]
-    pub id: Option<uuid::Uuid>,
+    #[serde(rename = "id")]
+    pub id: uuid::Uuid,
     #[serde(rename = "organizationId", skip_serializing_if = "Option::is_none")]
     pub organization_id: Option<uuid::Uuid>,
-    #[serde(rename = "createdDate", skip_serializing_if = "Option::is_none")]
-    pub created_date: Option<String>,
-    #[serde(rename = "updatedDate", skip_serializing_if = "Option::is_none")]
-    pub updated_date: Option<String>,
+    #[serde(rename = "createdDate")]
+    pub created_date: String,
+    #[serde(rename = "updatedDate")]
+    pub updated_date: String,
     #[serde(rename = "expirationDate", skip_serializing_if = "Option::is_none")]
     pub expiration_date: Option<String>,
-    #[serde(rename = "version", skip_serializing_if = "Option::is_none")]
-    pub version: Option<i32>,
-    #[serde(rename = "language", skip_serializing_if = "Option::is_none")]
-    pub language: Option<Language>,
-    #[serde(rename = "archived", skip_serializing_if = "Option::is_none")]
-    pub archived: Option<bool>,
-    #[serde(rename = "voucherStatus", skip_serializing_if = "Option::is_none")]
-    pub voucher_status: Option<VoucherStatus>,
-    #[serde(rename = "voucherNumber", skip_serializing_if = "Option::is_none")]
-    pub voucher_number: Option<String>,
-    #[serde(rename = "voucherDate", skip_serializing_if = "Option::is_none")]
-    pub voucher_date: Option<String>,
+    #[serde(rename = "version")]
+    pub version: i32,
+    #[serde(rename = "language")]
+    pub language: Language,
+    #[serde(rename = "archived")]
+    pub archived: bool,
+    #[serde(rename = "voucherStatus")]
+    pub voucher_status: VoucherStatus,
+    #[serde(rename = "voucherNumber")]
+    pub voucher_number: String,
+    #[serde(rename = "voucherDate")]
+    pub voucher_date: String,
     #[serde(rename = "address", skip_serializing_if = "Option::is_none")]
     pub address: Option<Box<crate::models::VoucherAddress>>,
-    #[serde(rename = "lineItems", skip_serializing_if = "Option::is_none")]
-    pub line_items: Option<Vec<crate::models::LineItemQuotation>>,
+    #[serde(rename = "lineItems")]
+    pub line_items: Vec<crate::models::LineItemQuotation>,
     #[serde(rename = "totalPrice", skip_serializing_if = "Option::is_none")]
     pub total_price: Option<Box<crate::models::TotalPrice>>,
     #[serde(rename = "taxAmounts", skip_serializing_if = "Option::is_none")]
@@ -60,21 +60,21 @@ pub struct Quotation {
 }
 
 impl Quotation {
-    pub fn new() -> Quotation {
+    pub fn new(id: uuid::Uuid, created_date: String, updated_date: String, version: i32, language: Language, archived: bool, voucher_status: VoucherStatus, voucher_number: String, voucher_date: String, line_items: Vec<crate::models::LineItemQuotation>) -> Quotation {
         Quotation {
-            id: None,
+            id,
             organization_id: None,
-            created_date: None,
-            updated_date: None,
+            created_date,
+            updated_date,
             expiration_date: None,
-            version: None,
-            language: None,
-            archived: None,
-            voucher_status: None,
-            voucher_number: None,
-            voucher_date: None,
+            version,
+            language,
+            archived,
+            voucher_status,
+            voucher_number,
+            voucher_date,
             address: None,
-            line_items: None,
+            line_items,
             total_price: None,
             tax_amounts: None,
             tax_conditions: None,

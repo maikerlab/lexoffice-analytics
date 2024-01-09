@@ -4,19 +4,19 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**id** | Option<[**uuid::Uuid**](uuid::Uuid.md)> |  | [optional]
+**id** | [**uuid::Uuid**](uuid::Uuid.md) |  | 
 **organization_id** | Option<[**uuid::Uuid**](uuid::Uuid.md)> |  | [optional]
-**created_date** | Option<**String**> |  | [optional]
-**updated_date** | Option<**String**> |  | [optional]
-**version** | Option<**i32**> |  | [optional]
-**language** | Option<**String**> |  | [optional]
-**archived** | Option<**bool**> |  | [optional]
-**voucher_status** | Option<**String**> |  | [optional]
-**voucher_number** | Option<**String**> |  | [optional]
-**voucher_date** | Option<**String**> |  | [optional]
+**created_date** | **String** |  | 
+**updated_date** | **String** |  | 
+**version** | **i32** |  | 
+**language** | **String** |  | 
+**archived** | **bool** |  | 
+**voucher_status** | **String** |  | 
+**voucher_number** | **String** |  | 
+**voucher_date** | **String** |  | 
 **due_date** | Option<**String**> |  | [optional]
 **address** | Option<[**crate::models::VoucherAddress**](VoucherAddress.md)> |  | [optional]
-**line_items** | Option<[**Vec<crate::models::LineItem>**](LineItem.md)> |  | [optional]
+**line_items** | [**Vec<crate::models::LineItem>**](LineItem.md) |  | 
 **total_price** | Option<[**crate::models::TotalPrice**](TotalPrice.md)> |  | [optional]
 **tax_amounts** | Option<[**Vec<crate::models::TaxAmount>**](TaxAmount.md)> |  | [optional]
 **tax_conditions** | Option<[**crate::models::TaxConditions**](TaxConditions.md)> |  | [optional]

@@ -16,8 +16,8 @@
 pub struct VoucherAddress {
     #[serde(rename = "contactId", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
     pub contact_id: Option<Option<uuid::Uuid>>,
-    #[serde(rename = "name", skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
+    #[serde(rename = "name")]
+    pub name: String,
     #[serde(rename = "supplement", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
     pub supplement: Option<Option<String>>,
     #[serde(rename = "street", skip_serializing_if = "Option::is_none")]
@@ -26,23 +26,23 @@ pub struct VoucherAddress {
     pub city: Option<String>,
     #[serde(rename = "zip", skip_serializing_if = "Option::is_none")]
     pub zip: Option<String>,
-    #[serde(rename = "countryCode", skip_serializing_if = "Option::is_none")]
-    pub country_code: Option<String>,
+    #[serde(rename = "countryCode")]
+    pub country_code: String,
     #[serde(rename = "contactPerson", skip_serializing_if = "Option::is_none")]
     pub contact_person: Option<String>,
 }
 
 impl VoucherAddress {
     /// Address for CreditNote/DeliveryNote/Invoice
-    pub fn new() -> VoucherAddress {
+    pub fn new(name: String, country_code: String) -> VoucherAddress {
         VoucherAddress {
             contact_id: None,
-            name: None,
+            name,
             supplement: None,
             street: None,
             city: None,
             zip: None,
-            country_code: None,
+            country_code,
             contact_person: None,
         }
     }

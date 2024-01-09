@@ -13,20 +13,20 @@
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct RelatedVoucher {
-    #[serde(rename = "id", skip_serializing_if = "Option::is_none")]
-    pub id: Option<uuid::Uuid>,
-    #[serde(rename = "voucherNumber", skip_serializing_if = "Option::is_none")]
-    pub voucher_number: Option<String>,
-    #[serde(rename = "voucherType", skip_serializing_if = "Option::is_none")]
-    pub voucher_type: Option<String>,
+    #[serde(rename = "id")]
+    pub id: uuid::Uuid,
+    #[serde(rename = "voucherNumber")]
+    pub voucher_number: String,
+    #[serde(rename = "voucherType")]
+    pub voucher_type: String,
 }
 
 impl RelatedVoucher {
-    pub fn new() -> RelatedVoucher {
+    pub fn new(id: uuid::Uuid, voucher_number: String, voucher_type: String) -> RelatedVoucher {
         RelatedVoucher {
-            id: None,
-            voucher_number: None,
-            voucher_type: None,
+            id,
+            voucher_number,
+            voucher_type,
         }
     }
 }

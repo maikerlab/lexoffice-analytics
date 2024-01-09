@@ -4,15 +4,15 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**content** | Option<[**Vec<crate::models::VoucherlistVoucher>**](VoucherlistVoucher.md)> |  | [optional]
-**first** | Option<**bool**> |  | [optional]
-**last** | Option<**bool**> |  | [optional]
-**total_pages** | Option<**i32**> |  | [optional]
-**total_elements** | Option<**i32**> |  | [optional]
-**number_of_elements** | Option<**i32**> |  | [optional]
-**size** | Option<**i32**> |  | [optional]
-**number** | Option<**i32**> |  | [optional]
-**sort** | Option<[**Vec<crate::models::SortProperties>**](SortProperties.md)> |  | [optional]
+**content** | [**Vec<crate::models::VoucherlistVoucher>**](VoucherlistVoucher.md) |  | 
+**first** | **bool** |  | 
+**last** | **bool** |  | 
+**total_pages** | **i32** |  | 
+**total_elements** | **i32** |  | 
+**number_of_elements** | **i32** |  | 
+**size** | **i32** |  | 
+**number** | **i32** |  | 
+**sort** | [**Vec<crate::models::SortProperties>**](SortProperties.md) |  | 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

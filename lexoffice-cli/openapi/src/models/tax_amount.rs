@@ -13,20 +13,20 @@
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TaxAmount {
-    #[serde(rename = "taxRatePercentage", skip_serializing_if = "Option::is_none")]
-    pub tax_rate_percentage: Option<f32>,
-    #[serde(rename = "taxAmount", skip_serializing_if = "Option::is_none")]
-    pub tax_amount: Option<f32>,
-    #[serde(rename = "netAmount", skip_serializing_if = "Option::is_none")]
-    pub net_amount: Option<f32>,
+    #[serde(rename = "taxRatePercentage")]
+    pub tax_rate_percentage: f32,
+    #[serde(rename = "taxAmount")]
+    pub tax_amount: f32,
+    #[serde(rename = "netAmount")]
+    pub net_amount: f32,
 }
 
 impl TaxAmount {
-    pub fn new() -> TaxAmount {
+    pub fn new(tax_rate_percentage: f32, tax_amount: f32, net_amount: f32) -> TaxAmount {
         TaxAmount {
-            tax_rate_percentage: None,
-            tax_amount: None,
-            net_amount: None,
+            tax_rate_percentage,
+            tax_amount,
+            net_amount,
         }
     }
 }

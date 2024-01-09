@@ -4,7 +4,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**country_code** | Option<**String**> |  | [optional]
+**country_code** | **String** |  | 
 **country_name_de** | Option<**String**> |  | [optional]
 **country_name_en** | Option<**String**> |  | [optional]
 **tax_classification** | Option<**String**> |  | [optional]

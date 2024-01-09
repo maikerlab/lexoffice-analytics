@@ -13,23 +13,23 @@
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PaymentItem {
-    #[serde(rename = "paymentItemType", skip_serializing_if = "Option::is_none")]
-    pub payment_item_type: Option<PaymentItemType>,
+    #[serde(rename = "paymentItemType")]
+    pub payment_item_type: PaymentItemType,
     #[serde(rename = "postingDate", skip_serializing_if = "Option::is_none")]
     pub posting_date: Option<String>,
-    #[serde(rename = "amount", skip_serializing_if = "Option::is_none")]
-    pub amount: Option<f32>,
-    #[serde(rename = "currency", skip_serializing_if = "Option::is_none")]
-    pub currency: Option<Currency>,
+    #[serde(rename = "amount")]
+    pub amount: f32,
+    #[serde(rename = "currency")]
+    pub currency: Currency,
 }
 
 impl PaymentItem {
-    pub fn new() -> PaymentItem {
+    pub fn new(payment_item_type: PaymentItemType, amount: f32, currency: Currency) -> PaymentItem {
         PaymentItem {
-            payment_item_type: None,
+            payment_item_type,
             posting_date: None,
-            amount: None,
-            currency: None,
+            amount,
+            currency,
         }
     }
 }

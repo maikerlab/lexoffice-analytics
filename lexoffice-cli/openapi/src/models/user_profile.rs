@@ -13,35 +13,35 @@
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct UserProfile {
-    #[serde(rename = "organizationId", skip_serializing_if = "Option::is_none")]
-    pub organization_id: Option<uuid::Uuid>,
-    #[serde(rename = "companyName", skip_serializing_if = "Option::is_none")]
-    pub company_name: Option<String>,
-    #[serde(rename = "created", skip_serializing_if = "Option::is_none")]
-    pub created: Option<Box<crate::models::UserProfileCreated>>,
-    #[serde(rename = "connectionId", skip_serializing_if = "Option::is_none")]
-    pub connection_id: Option<uuid::Uuid>,
-    #[serde(rename = "taxType", skip_serializing_if = "Option::is_none")]
-    pub tax_type: Option<TaxType>,
-    #[serde(rename = "distanceSalesPrinciple", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
-    pub distance_sales_principle: Option<Option<DistanceSalesPrinciple>>,
-    #[serde(rename = "businessFeatures", skip_serializing_if = "Option::is_none")]
-    pub business_features: Option<Vec<BusinessFeatures>>,
-    #[serde(rename = "smallBusiness", skip_serializing_if = "Option::is_none")]
-    pub small_business: Option<bool>,
+    #[serde(rename = "organizationId")]
+    pub organization_id: uuid::Uuid,
+    #[serde(rename = "companyName")]
+    pub company_name: String,
+    #[serde(rename = "created")]
+    pub created: Box<crate::models::UserProfileCreated>,
+    #[serde(rename = "connectionId")]
+    pub connection_id: uuid::Uuid,
+    #[serde(rename = "taxType")]
+    pub tax_type: TaxType,
+    #[serde(rename = "distanceSalesPrinciple", deserialize_with = "Option::deserialize")]
+    pub distance_sales_principle: Option<DistanceSalesPrinciple>,
+    #[serde(rename = "businessFeatures")]
+    pub business_features: Vec<BusinessFeatures>,
+    #[serde(rename = "smallBusiness")]
+    pub small_business: bool,
 }
 
 impl UserProfile {
-    pub fn new() -> UserProfile {
+    pub fn new(organization_id: uuid::Uuid, company_name: String, created: crate::models::UserProfileCreated, connection_id: uuid::Uuid, tax_type: TaxType, distance_sales_principle: Option<DistanceSalesPrinciple>, business_features: Vec<BusinessFeatures>, small_business: bool) -> UserProfile {
         UserProfile {
-            organization_id: None,
-            company_name: None,
-            created: None,
-            connection_id: None,
-            tax_type: None,
-            distance_sales_principle: None,
-            business_features: None,
-            small_business: None,
+            organization_id,
+            company_name,
+            created: Box::new(created),
+            connection_id,
+            tax_type,
+            distance_sales_principle,
+            business_features,
+            small_business,
         }
     }
 }

@@ -15,14 +15,14 @@
 pub struct Payment {
     #[serde(rename = "openAmount", skip_serializing_if = "Option::is_none")]
     pub open_amount: Option<f32>,
-    #[serde(rename = "currency", skip_serializing_if = "Option::is_none")]
-    pub currency: Option<Currency>,
-    #[serde(rename = "paymentStatus", skip_serializing_if = "Option::is_none")]
-    pub payment_status: Option<PaymentStatus>,
-    #[serde(rename = "voucherType", skip_serializing_if = "Option::is_none")]
-    pub voucher_type: Option<VoucherType>,
-    #[serde(rename = "voucherStatus", skip_serializing_if = "Option::is_none")]
-    pub voucher_status: Option<VoucherStatus>,
+    #[serde(rename = "currency")]
+    pub currency: Currency,
+    #[serde(rename = "paymentStatus")]
+    pub payment_status: PaymentStatus,
+    #[serde(rename = "voucherType")]
+    pub voucher_type: VoucherType,
+    #[serde(rename = "voucherStatus")]
+    pub voucher_status: VoucherStatus,
     #[serde(rename = "paidDate", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
     pub paid_date: Option<Option<String>>,
     #[serde(rename = "paymentItems", skip_serializing_if = "Option::is_none")]
@@ -30,13 +30,13 @@ pub struct Payment {
 }
 
 impl Payment {
-    pub fn new() -> Payment {
+    pub fn new(currency: Currency, payment_status: PaymentStatus, voucher_type: VoucherType, voucher_status: VoucherStatus) -> Payment {
         Payment {
             open_amount: None,
-            currency: None,
-            payment_status: None,
-            voucher_type: None,
-            voucher_status: None,
+            currency,
+            payment_status,
+            voucher_type,
+            voucher_status,
             paid_date: None,
             payment_items: None,
         }

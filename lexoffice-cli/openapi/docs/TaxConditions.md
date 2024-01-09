@@ -4,7 +4,7 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**tax_type** | Option<**String**> |  | [optional]
+**tax_type** | **String** |  | 
 **tax_sub_type** | Option<**String**> |  | [optional]
 **tax_type_note** | Option<**String**> |  | [optional]
 

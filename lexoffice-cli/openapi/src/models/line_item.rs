@@ -15,14 +15,14 @@
 pub struct LineItem {
     #[serde(rename = "id", skip_serializing_if = "Option::is_none")]
     pub id: Option<uuid::Uuid>,
-    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
-    pub r#type: Option<Type>,
-    #[serde(rename = "name", skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
+    #[serde(rename = "type")]
+    pub r#type: Type,
+    #[serde(rename = "name")]
+    pub name: String,
     #[serde(rename = "description", skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
-    #[serde(rename = "quantity", skip_serializing_if = "Option::is_none")]
-    pub quantity: Option<f32>,
+    #[serde(rename = "quantity")]
+    pub quantity: f32,
     #[serde(rename = "unitName", skip_serializing_if = "Option::is_none")]
     pub unit_name: Option<String>,
     #[serde(rename = "unitPrice", skip_serializing_if = "Option::is_none")]
@@ -34,13 +34,13 @@ pub struct LineItem {
 }
 
 impl LineItem {
-    pub fn new() -> LineItem {
+    pub fn new(r#type: Type, name: String, quantity: f32) -> LineItem {
         LineItem {
             id: None,
-            r#type: None,
-            name: None,
+            r#type,
+            name,
             description: None,
-            quantity: None,
+            quantity,
             unit_name: None,
             unit_price: None,
             discount_percentage: None,

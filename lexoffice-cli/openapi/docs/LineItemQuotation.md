@@ -5,10 +5,10 @@
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **id** | Option<[**uuid::Uuid**](uuid::Uuid.md)> |  | [optional]
-**r#type** | Option<**String**> |  | [optional]
-**name** | Option<**String**> |  | [optional]
+**r#type** | **String** |  | 
+**name** | **String** |  | 
 **description** | Option<**String**> |  | [optional]
-**quantity** | Option<**f32**> |  | [optional]
+**quantity** | **f32** |  | 
 **unit_name** | Option<**String**> |  | [optional]
 **unit_price** | Option<[**crate::models::UnitPrice**](UnitPrice.md)> |  | [optional]
 **discount_percentage** | Option<**f32**> |  | [optional]

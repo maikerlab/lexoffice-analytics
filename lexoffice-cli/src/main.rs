@@ -31,14 +31,11 @@ impl App {
 
 async fn sync_vouchers(pool: &PgPool, vouchers: Vec<VoucherlistVoucher>) {
     for voucher in vouchers {
-        if voucher.id.is_none() || !db::voucher_exists(pool, voucher.id.unwrap().to_string()).await
-        {
-            if voucher.voucher_number.is_some() {
-                println!(
-                    "Insert voucher into DB: {:?}",
-                    voucher.clone().voucher_number.unwrap()
-                );
-            }
+        if !db::voucher_exists(pool, voucher.id.to_string()).await {
+            println!(
+                "Insert voucher into DB: {:?}",
+                voucher.clone().voucher_number
+            );
         }
 
         let db_voucher = DbVoucher::from(voucher);
@@ -47,14 +44,17 @@ async fn sync_vouchers(pool: &PgPool, vouchers: Vec<VoucherlistVoucher>) {
 }
 
 async fn sync_invoice(config: &Configuration, pool: &PgPool, invoice_id: String) {
-    let result = lexoffice::get_invoice(config, invoice_id.clone())
-        .await
-        .and_then(move |invoice| {
-            let db_invoice = DbInvoice::from(invoice);
-            Ok(db::insert_invoice(pool, db_invoice))
-        });
+    let result = lexoffice::get_invoice(config, invoice_id.clone()).await;
+
     match result {
-        Ok(_) => println!("Synced invoice {}", invoice_id),
+        Ok(ref invoice) => {
+            let db_invoice = DbInvoice::from(invoice.to_owned());
+            let inserted_id = db::insert_invoice(pool, db_invoice).await;
+            match inserted_id {
+                Ok(invoice_id) => println!("Inserted invoice with ID: {}", invoice_id),
+                Err(e) => println!("Error inserting invoice: {:?}", e),
+            }
+        }
         Err(e) => println!("Error syncing invoice: {:?}", e),
     }
 }
@@ -74,13 +74,12 @@ async fn sync_lexoffice(pool: &PgPool, types: Vec<String>) {
             Ok(voucher_list) => {
                 println!(
                     "Fetched {} of {} vouchers",
-                    voucher_list.number_of_elements.unwrap(),
-                    voucher_list.total_elements.unwrap()
+                    voucher_list.number_of_elements, voucher_list.total_elements
                 );
-                let vouchers = voucher_list.content.unwrap_or(vec![]);
+                let vouchers = voucher_list.content;
                 sync_vouchers(pool, vouchers).await;
 
-                if voucher_list.last.unwrap_or(false) {
+                if voucher_list.last {
                     break;
                 }
                 current_page += 1;
@@ -104,10 +103,7 @@ async fn show_vouchers(pool: &PgPool) {
     for voucher in all_vouchers {
         println!("-----------");
         println!("ID: {}", voucher.id);
-        println!(
-            "Type: {}",
-            voucher.voucher_type.unwrap_or("n/a".to_string())
-        );
+        println!("Type: {}", voucher.voucher_type);
         println!(
             "Contact Name: {}",
             voucher.contact_name.unwrap_or("n/a".to_string())
@@ -119,10 +115,7 @@ async fn show_vouchers(pool: &PgPool) {
     for invoice in all_invoices {
         println!("-----------");
         println!("ID: {}", invoice.id);
-        println!(
-            "Number: {}",
-            invoice.voucher_number.unwrap_or("n/a".to_string())
-        );
+        println!("Number: {}", invoice.voucher_number);
         println!("Updated at: {:?}", invoice.updated_date);
     }
 }

@@ -13,8 +13,8 @@
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct TaxConditions {
-    #[serde(rename = "taxType", skip_serializing_if = "Option::is_none")]
-    pub tax_type: Option<TaxType>,
+    #[serde(rename = "taxType")]
+    pub tax_type: TaxType,
     #[serde(rename = "taxSubType", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
     pub tax_sub_type: Option<Option<TaxSubType>>,
     #[serde(rename = "taxTypeNote", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
@@ -22,9 +22,9 @@ pub struct TaxConditions {
 }
 
 impl TaxConditions {
-    pub fn new() -> TaxConditions {
+    pub fn new(tax_type: TaxType) -> TaxConditions {
         TaxConditions {
-            tax_type: None,
+            tax_type,
             tax_sub_type: None,
             tax_type_note: None,
         }

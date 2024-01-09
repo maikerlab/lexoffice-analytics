@@ -13,26 +13,26 @@
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct SortProperties {
-    #[serde(rename = "direction", skip_serializing_if = "Option::is_none")]
-    pub direction: Option<String>,
-    #[serde(rename = "property", skip_serializing_if = "Option::is_none")]
-    pub property: Option<String>,
-    #[serde(rename = "ignoreCase", skip_serializing_if = "Option::is_none")]
-    pub ignore_case: Option<bool>,
-    #[serde(rename = "nullHandling", skip_serializing_if = "Option::is_none")]
-    pub null_handling: Option<String>,
-    #[serde(rename = "ascending", skip_serializing_if = "Option::is_none")]
-    pub ascending: Option<bool>,
+    #[serde(rename = "direction")]
+    pub direction: String,
+    #[serde(rename = "property")]
+    pub property: String,
+    #[serde(rename = "ignoreCase")]
+    pub ignore_case: bool,
+    #[serde(rename = "nullHandling")]
+    pub null_handling: String,
+    #[serde(rename = "ascending")]
+    pub ascending: bool,
 }
 
 impl SortProperties {
-    pub fn new() -> SortProperties {
+    pub fn new(direction: String, property: String, ignore_case: bool, null_handling: String, ascending: bool) -> SortProperties {
         SortProperties {
-            direction: None,
-            property: None,
-            ignore_case: None,
-            null_handling: None,
-            ascending: None,
+            direction,
+            property,
+            ignore_case,
+            null_handling,
+            ascending,
         }
     }
 }

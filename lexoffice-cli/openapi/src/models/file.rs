@@ -13,14 +13,14 @@
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct File {
-    #[serde(rename = "documentFileId", skip_serializing_if = "Option::is_none")]
-    pub document_file_id: Option<String>,
+    #[serde(rename = "documentFileId")]
+    pub document_file_id: String,
 }
 
 impl File {
-    pub fn new() -> File {
+    pub fn new(document_file_id: String) -> File {
         File {
-            document_file_id: None,
+            document_file_id,
         }
     }
 }

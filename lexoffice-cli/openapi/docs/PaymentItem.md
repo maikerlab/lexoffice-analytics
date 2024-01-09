@@ -4,10 +4,10 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**payment_item_type** | Option<**String**> |  | [optional]
+**payment_item_type** | **String** |  | 
 **posting_date** | Option<**String**> |  | [optional]
-**amount** | Option<**f32**> |  | [optional]
-**currency** | Option<**String**> |  | [optional]
+**amount** | **f32** |  | 
+**currency** | **String** |  | 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)
 

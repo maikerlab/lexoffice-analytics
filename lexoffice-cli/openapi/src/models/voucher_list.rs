@@ -13,38 +13,38 @@
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct VoucherList {
-    #[serde(rename = "content", skip_serializing_if = "Option::is_none")]
-    pub content: Option<Vec<crate::models::VoucherlistVoucher>>,
-    #[serde(rename = "first", skip_serializing_if = "Option::is_none")]
-    pub first: Option<bool>,
-    #[serde(rename = "last", skip_serializing_if = "Option::is_none")]
-    pub last: Option<bool>,
-    #[serde(rename = "totalPages", skip_serializing_if = "Option::is_none")]
-    pub total_pages: Option<i32>,
-    #[serde(rename = "totalElements", skip_serializing_if = "Option::is_none")]
-    pub total_elements: Option<i32>,
-    #[serde(rename = "numberOfElements", skip_serializing_if = "Option::is_none")]
-    pub number_of_elements: Option<i32>,
-    #[serde(rename = "size", skip_serializing_if = "Option::is_none")]
-    pub size: Option<i32>,
-    #[serde(rename = "number", skip_serializing_if = "Option::is_none")]
-    pub number: Option<i32>,
-    #[serde(rename = "sort", skip_serializing_if = "Option::is_none")]
-    pub sort: Option<Vec<crate::models::SortProperties>>,
+    #[serde(rename = "content")]
+    pub content: Vec<crate::models::VoucherlistVoucher>,
+    #[serde(rename = "first")]
+    pub first: bool,
+    #[serde(rename = "last")]
+    pub last: bool,
+    #[serde(rename = "totalPages")]
+    pub total_pages: i32,
+    #[serde(rename = "totalElements")]
+    pub total_elements: i32,
+    #[serde(rename = "numberOfElements")]
+    pub number_of_elements: i32,
+    #[serde(rename = "size")]
+    pub size: i32,
+    #[serde(rename = "number")]
+    pub number: i32,
+    #[serde(rename = "sort")]
+    pub sort: Vec<crate::models::SortProperties>,
 }
 
 impl VoucherList {
-    pub fn new() -> VoucherList {
+    pub fn new(content: Vec<crate::models::VoucherlistVoucher>, first: bool, last: bool, total_pages: i32, total_elements: i32, number_of_elements: i32, size: i32, number: i32, sort: Vec<crate::models::SortProperties>) -> VoucherList {
         VoucherList {
-            content: None,
-            first: None,
-            last: None,
-            total_pages: None,
-            total_elements: None,
-            number_of_elements: None,
-            size: None,
-            number: None,
-            sort: None,
+            content,
+            first,
+            last,
+            total_pages,
+            total_elements,
+            number_of_elements,
+            size,
+            number,
+            sort,
         }
     }
 }

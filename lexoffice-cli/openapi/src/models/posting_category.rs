@@ -13,12 +13,12 @@
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct PostingCategory {
-    #[serde(rename = "id", skip_serializing_if = "Option::is_none")]
-    pub id: Option<uuid::Uuid>,
-    #[serde(rename = "name", skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
-    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
-    pub r#type: Option<Type>,
+    #[serde(rename = "id")]
+    pub id: uuid::Uuid,
+    #[serde(rename = "name")]
+    pub name: String,
+    #[serde(rename = "type")]
+    pub r#type: Type,
     #[serde(rename = "contactRequired", skip_serializing_if = "Option::is_none")]
     pub contact_required: Option<bool>,
     #[serde(rename = "splitAllowed", skip_serializing_if = "Option::is_none")]
@@ -28,11 +28,11 @@ pub struct PostingCategory {
 }
 
 impl PostingCategory {
-    pub fn new() -> PostingCategory {
+    pub fn new(id: uuid::Uuid, name: String, r#type: Type) -> PostingCategory {
         PostingCategory {
-            id: None,
-            name: None,
-            r#type: None,
+            id,
+            name,
+            r#type,
             contact_required: None,
             split_allowed: None,
             group_name: None,

@@ -5,10 +5,10 @@
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **open_amount** | Option<**f32**> |  | [optional]
-**currency** | Option<**String**> |  | [optional]
-**payment_status** | Option<**String**> |  | [optional]
-**voucher_type** | Option<**String**> |  | [optional]
-**voucher_status** | Option<**String**> |  | [optional]
+**currency** | **String** |  | 
+**payment_status** | **String** |  | 
+**voucher_type** | **String** |  | 
+**voucher_status** | **String** |  | 
 **paid_date** | Option<**String**> |  | [optional]
 **payment_items** | Option<[**Vec<crate::models::PaymentItem>**](PaymentItem.md)> |  | [optional]
 
