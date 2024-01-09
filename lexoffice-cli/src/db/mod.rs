@@ -1,28 +1,38 @@
 pub mod models;
 use self::models::{DbInvoice, DbVoucher};
+use crate::lexoffice::EnumToString;
 use openapi::models::*;
 use sqlx::{
     postgres::PgPoolOptions,
     types::chrono::{DateTime, NaiveDateTime},
     Error, PgPool,
 };
-use std::{env, str::FromStr};
+use std::{borrow::Borrow, env, str::FromStr};
+
+fn parse_datetime(datetime_str: String) -> Option<NaiveDateTime> {
+    let parsed_result = DateTime::parse_from_rfc3339(datetime_str.as_str());
+    match parsed_result {
+        Ok(dt) => Some(dt.naive_utc()),
+        Err(_) => None,
+    }
+}
 
 // Convert Lexoffice Invoice to database entity
 impl From<Invoice> for DbInvoice {
     fn from(invoice: Invoice) -> Self {
+        //let _address = invoice.address.map(|a| );
         DbInvoice {
             id: invoice.id.unwrap_or_default().to_string(),
-            organization_id: None,
-            created_date: None,
-            updated_date: None,
+            organization_id: invoice.organization_id.map(|val| val.to_string()),
+            created_date: parse_datetime(invoice.created_date.unwrap_or_default()),
+            updated_date: parse_datetime(invoice.updated_date.unwrap_or_default()),
             version: None,
             language: None,
             archived: None,
-            voucher_status: Some(format!("{:?}", invoice.voucher_status.unwrap_or_default())),
+            voucher_status: Some(invoice.voucher_status.unwrap().enum_to_string()),
             voucher_number: None,
-            voucher_date: None,
-            due_date: None,
+            voucher_date: parse_datetime(invoice.voucher_date.unwrap_or_default()),
+            due_date: parse_datetime(invoice.due_date.unwrap_or_default()),
             address_id: None,
             address_name: None,
             address_supplement: None,
@@ -36,27 +46,25 @@ impl From<Invoice> for DbInvoice {
 
 impl From<VoucherlistVoucher> for DbVoucher {
     fn from(v: VoucherlistVoucher) -> Self {
-        println!("from VoucherlistVoucher: {:?}", v);
-        let voucher_date =
-            DateTime::parse_from_rfc3339(v.voucher_date.unwrap_or_default().as_str());
-        let db_v = DbVoucher {
+        DbVoucher {
             id: v.id.unwrap_or_default().to_string(),
-            voucher_type: Some(format!("{:?}", v.voucher_type).to_lowercase()),
-            voucher_status: Some(format!("{:?}", v.voucher_status).to_lowercase()),
+            voucher_type: Some(v.voucher_type.enum_to_string()),
+            voucher_status: Some(v.voucher_status.enum_to_string()),
             voucher_number: v.voucher_number,
-            voucher_date: Some(voucher_date.unwrap().naive_utc()),
-            created_date: NaiveDateTime::from_str(v.created_date.unwrap().as_str()).ok(),
-            updated_date: NaiveDateTime::from_str(v.updated_date.unwrap().as_str()).ok(),
-            due_date: NaiveDateTime::from_str(v.due_date.unwrap_or_default().as_str()).ok(),
-            contact_id: None,
+            voucher_date: parse_datetime(v.voucher_date.unwrap_or_default()),
+            created_date: parse_datetime(v.created_date.unwrap_or_default()),
+            updated_date: parse_datetime(v.updated_date.unwrap_or_default()),
+            due_date: parse_datetime(v.due_date.unwrap_or_default()),
+            contact_id: match v.contact_id {
+                Some(c_id) => Some(c_id.to_string()),
+                None => None,
+            },
             contact_name: v.contact_name,
-            total_amount: None,
-            open_amount: None,
-            currency: None,
-            archived: None,
-        };
-        println!("to DbVoucher: {:?}", db_v);
-        db_v
+            total_amount: v.total_amount.map(|val| f64::from(val)),
+            open_amount: v.open_amount.map(|val| f64::from(val)),
+            currency: v.currency.map(|val| val.enum_to_string()),
+            archived: v.archived,
+        }
     }
 }
 
@@ -106,14 +114,6 @@ pub async fn get_all_invoices(pool: &PgPool) -> Result<Vec<DbInvoice>, Error> {
     sqlx::query_as!(DbInvoice, r#"select * from invoices"#)
         .fetch_all(pool)
         .await
-}
-
-fn parse_datetime(datetime_str: String) -> Option<NaiveDateTime> {
-    let parsed_result = DateTime::parse_from_rfc3339(datetime_str.as_str());
-    match parsed_result {
-        Ok(dt) => Some(dt.naive_utc()),
-        Err(_) => None,
-    }
 }
 
 pub async fn insert_voucher(pool: &PgPool, voucher: DbVoucher) -> Result<usize, Error> {

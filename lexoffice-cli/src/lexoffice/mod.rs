@@ -8,8 +8,69 @@ use openapi::{
         vouchers_api::{voucherlist_get, VoucherlistGetError},
         Error,
     },
-    models::{Invoice, VoucherList},
+    models::{invoice, voucherlist_voucher, Invoice, VoucherList},
 };
+
+pub trait EnumToString {
+    fn enum_to_string(&self) -> String;
+}
+
+impl EnumToString for voucherlist_voucher::VoucherStatus {
+    fn enum_to_string(&self) -> String {
+        match self {
+            voucherlist_voucher::VoucherStatus::Open => "open".to_string(),
+            voucherlist_voucher::VoucherStatus::Paid => "paid".to_string(),
+            voucherlist_voucher::VoucherStatus::Paidoff => "paidoff".to_string(),
+            voucherlist_voucher::VoucherStatus::Voided => "voided".to_string(),
+            voucherlist_voucher::VoucherStatus::Transferred => "transferred".to_string(),
+            voucherlist_voucher::VoucherStatus::Sepadebit => "sepadebit".to_string(),
+            voucherlist_voucher::VoucherStatus::Draft => "draft".to_string(),
+            voucherlist_voucher::VoucherStatus::Overdue => "overdue".to_string(),
+            voucherlist_voucher::VoucherStatus::Accepted => "accepted".to_string(),
+            voucherlist_voucher::VoucherStatus::Rejected => "rejected".to_string(),
+        }
+    }
+}
+
+impl EnumToString for voucherlist_voucher::VoucherType {
+    fn enum_to_string(&self) -> String {
+        match self {
+            voucherlist_voucher::VoucherType::Salesinvoice => "salesinvoice".to_string(),
+            voucherlist_voucher::VoucherType::Salescreditnote => "salescreditnote".to_string(),
+            voucherlist_voucher::VoucherType::Purchaseinvoice => "purchaseinvoice".to_string(),
+            voucherlist_voucher::VoucherType::Purchasecreditnote => {
+                "purchasecreditnote".to_string()
+            }
+            voucherlist_voucher::VoucherType::Invoice => "invoice".to_string(),
+            voucherlist_voucher::VoucherType::Downpaymentinvoice => {
+                "downpaymentinvoice".to_string()
+            }
+            voucherlist_voucher::VoucherType::Creditnote => "creditnote".to_string(),
+            voucherlist_voucher::VoucherType::Orderconfirmation => "orderconfirmation".to_string(),
+            voucherlist_voucher::VoucherType::Quotation => "quotation".to_string(),
+            voucherlist_voucher::VoucherType::Deliverynote => "deliverynote".to_string(),
+        }
+    }
+}
+
+impl EnumToString for voucherlist_voucher::Currency {
+    fn enum_to_string(&self) -> String {
+        match self {
+            voucherlist_voucher::Currency::Eur => "EUR".to_string(),
+        }
+    }
+}
+
+impl EnumToString for invoice::VoucherStatus {
+    fn enum_to_string(&self) -> String {
+        match self {
+            invoice::VoucherStatus::Draft => "draft".to_string(),
+            invoice::VoucherStatus::Open => "open".to_string(),
+            invoice::VoucherStatus::Paid => "paid".to_string(),
+            invoice::VoucherStatus::Voided => "voided".to_string(),
+        }
+    }
+}
 
 pub const MAX_REQUESTS_PER_SECOND: f32 = 2.0;
 
