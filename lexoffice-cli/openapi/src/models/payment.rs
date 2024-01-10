@@ -13,8 +13,8 @@
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Payment {
-    #[serde(rename = "openAmount", skip_serializing_if = "Option::is_none")]
-    pub open_amount: Option<f32>,
+    #[serde(rename = "openAmount")]
+    pub open_amount: f32,
     #[serde(rename = "currency")]
     pub currency: Currency,
     #[serde(rename = "paymentStatus")]
@@ -25,20 +25,20 @@ pub struct Payment {
     pub voucher_status: VoucherStatus,
     #[serde(rename = "paidDate", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
     pub paid_date: Option<Option<String>>,
-    #[serde(rename = "paymentItems", skip_serializing_if = "Option::is_none")]
-    pub payment_items: Option<Vec<crate::models::PaymentItem>>,
+    #[serde(rename = "paymentItems")]
+    pub payment_items: Vec<crate::models::PaymentItem>,
 }
 
 impl Payment {
-    pub fn new(currency: Currency, payment_status: PaymentStatus, voucher_type: VoucherType, voucher_status: VoucherStatus) -> Payment {
+    pub fn new(open_amount: f32, currency: Currency, payment_status: PaymentStatus, voucher_type: VoucherType, voucher_status: VoucherStatus, payment_items: Vec<crate::models::PaymentItem>) -> Payment {
         Payment {
-            open_amount: None,
+            open_amount,
             currency,
             payment_status,
             voucher_type,
             voucher_status,
             paid_date: None,
-            payment_items: None,
+            payment_items,
         }
     }
 }

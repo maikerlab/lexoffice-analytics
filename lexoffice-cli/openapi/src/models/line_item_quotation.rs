@@ -19,18 +19,18 @@ pub struct LineItemQuotation {
     pub r#type: Type,
     #[serde(rename = "name")]
     pub name: String,
-    #[serde(rename = "description", skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
+    #[serde(rename = "description")]
+    pub description: String,
     #[serde(rename = "quantity")]
     pub quantity: f32,
-    #[serde(rename = "unitName", skip_serializing_if = "Option::is_none")]
-    pub unit_name: Option<String>,
-    #[serde(rename = "unitPrice", skip_serializing_if = "Option::is_none")]
-    pub unit_price: Option<Box<crate::models::UnitPrice>>,
-    #[serde(rename = "discountPercentage", skip_serializing_if = "Option::is_none")]
-    pub discount_percentage: Option<f32>,
-    #[serde(rename = "lineItemAmount", skip_serializing_if = "Option::is_none")]
-    pub line_item_amount: Option<f32>,
+    #[serde(rename = "unitName")]
+    pub unit_name: String,
+    #[serde(rename = "unitPrice")]
+    pub unit_price: Box<crate::models::UnitPrice>,
+    #[serde(rename = "discountPercentage")]
+    pub discount_percentage: f32,
+    #[serde(rename = "lineItemAmount")]
+    pub line_item_amount: f32,
     #[serde(rename = "subItems", skip_serializing_if = "Option::is_none")]
     pub sub_items: Option<Vec<crate::models::LineItemQuotation>>,
     #[serde(rename = "optional", skip_serializing_if = "Option::is_none")]
@@ -40,17 +40,17 @@ pub struct LineItemQuotation {
 }
 
 impl LineItemQuotation {
-    pub fn new(r#type: Type, name: String, quantity: f32) -> LineItemQuotation {
+    pub fn new(r#type: Type, name: String, description: String, quantity: f32, unit_name: String, unit_price: crate::models::UnitPrice, discount_percentage: f32, line_item_amount: f32) -> LineItemQuotation {
         LineItemQuotation {
             id: None,
             r#type,
             name,
-            description: None,
+            description,
             quantity,
-            unit_name: None,
-            unit_price: None,
-            discount_percentage: None,
-            line_item_amount: None,
+            unit_name,
+            unit_price: Box::new(unit_price),
+            discount_percentage,
+            line_item_amount,
             sub_items: None,
             optional: None,
             alternative: None,

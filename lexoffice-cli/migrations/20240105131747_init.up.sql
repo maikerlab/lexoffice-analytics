@@ -9,9 +9,9 @@ CREATE TABLE voucherlist (
   updated_date TIMESTAMP NOT NULL,
   due_date TIMESTAMP,
   contact_id VARCHAR,
-  contact_name VARCHAR,
-  total_amount FLOAT,
-  open_amount FLOAT,
+  contact_name VARCHAR NOT NULL,
+  total_amount FLOAT NOT NULL DEFAULT 0.0,
+  open_amount FLOAT NOT NULL DEFAULT 0.0,
   currency VARCHAR NOT NULL DEFAULT 'EUR',
   archived BOOLEAN NOT NULL DEFAULT FALSE
 );
@@ -24,7 +24,7 @@ CREATE TABLE addresses (
   street VARCHAR,
   city VARCHAR,
   zip VARCHAR,
-  country_code VARCHAR
+  country_code VARCHAR NOT NULL DEFAULT 'DE'
 );
 
 CREATE TABLE invoices (

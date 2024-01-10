@@ -7,12 +7,12 @@ Name | Type | Description | Notes
 **id** | Option<[**uuid::Uuid**](uuid::Uuid.md)> |  | [optional]
 **r#type** | **String** |  | 
 **name** | **String** |  | 
-**description** | Option<**String**> |  | [optional]
+**description** | **String** |  | 
 **quantity** | **f32** |  | 
-**unit_name** | Option<**String**> |  | [optional]
-**unit_price** | Option<[**crate::models::UnitPrice**](UnitPrice.md)> |  | [optional]
-**discount_percentage** | Option<**f32**> |  | [optional]
-**line_item_amount** | Option<**f32**> |  | [optional]
+**unit_name** | **String** |  | 
+**unit_price** | [**crate::models::UnitPrice**](UnitPrice.md) |  | 
+**discount_percentage** | **f32** |  | 
+**line_item_amount** | **f32** |  | 
 **sub_items** | Option<[**Vec<crate::models::LineItemQuotation>**](LineItemQuotation.md)> |  | [optional]
 **optional** | Option<**bool**> |  | [optional]
 **alternative** | Option<**bool**> |  | [optional]

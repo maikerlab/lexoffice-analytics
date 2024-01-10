@@ -444,7 +444,6 @@ components:
         - voucherDate
         - createdDate
         - updatedDate
-        - contactId
         - contactName
         - totalAmount
         - openAmount
@@ -715,7 +714,6 @@ components:
         contactId:
           type: string
           format: uuid
-          nullable: true
         name:
           type: string
         supplement:
@@ -1527,7 +1525,6 @@ components:
       type: object
       required:
         - taxType
-        - taxTypeNote
       properties:
         taxType:
           type: string

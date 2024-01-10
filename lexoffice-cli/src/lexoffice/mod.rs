@@ -9,7 +9,7 @@ use openapi::{
         vouchers_api::{voucherlist_get, VoucherlistGetError},
         Error,
     },
-    models::{invoice, line_item::Type, voucherlist_voucher, Invoice, LineItem, VoucherList},
+    models::{invoice, line_item::Type, total_price, voucherlist_voucher, Invoice, VoucherList},
 };
 
 pub trait EnumToString {
@@ -58,6 +58,14 @@ impl EnumToString for voucherlist_voucher::Currency {
     fn enum_to_string(&self) -> String {
         match self {
             voucherlist_voucher::Currency::Eur => "EUR".to_string(),
+        }
+    }
+}
+
+impl EnumToString for total_price::Currency {
+    fn enum_to_string(&self) -> String {
+        match self {
+            total_price::Currency::Eur => "EUR".to_string(),
         }
     }
 }

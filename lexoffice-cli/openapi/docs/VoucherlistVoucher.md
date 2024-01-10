@@ -13,10 +13,10 @@ Name | Type | Description | Notes
 **updated_date** | **String** |  | 
 **due_date** | Option<**String**> |  | [optional]
 **contact_id** | Option<[**uuid::Uuid**](uuid::Uuid.md)> |  | [optional]
-**contact_name** | Option<**String**> |  | [optional]
-**total_amount** | Option<**f32**> |  | [optional]
-**open_amount** | Option<**f32**> |  | [optional]
-**currency** | Option<**String**> |  | [optional]
+**contact_name** | **String** |  | 
+**total_amount** | **f32** |  | 
+**open_amount** | **f32** |  | 
+**currency** | **String** |  | 
 **archived** | **bool** |  | 
 
 [[Back to Model list]](../README.md#documentation-for-models) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to README]](../README.md)

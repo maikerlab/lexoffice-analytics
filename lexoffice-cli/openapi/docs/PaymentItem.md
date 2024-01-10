@@ -5,7 +5,7 @@
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
 **payment_item_type** | **String** |  | 
-**posting_date** | Option<**String**> |  | [optional]
+**posting_date** | **String** |  | 
 **amount** | **f32** |  | 
 **currency** | **String** |  | 
 

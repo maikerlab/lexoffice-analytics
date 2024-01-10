@@ -15,8 +15,8 @@
 pub struct PaymentItem {
     #[serde(rename = "paymentItemType")]
     pub payment_item_type: PaymentItemType,
-    #[serde(rename = "postingDate", skip_serializing_if = "Option::is_none")]
-    pub posting_date: Option<String>,
+    #[serde(rename = "postingDate")]
+    pub posting_date: String,
     #[serde(rename = "amount")]
     pub amount: f32,
     #[serde(rename = "currency")]
@@ -24,10 +24,10 @@ pub struct PaymentItem {
 }
 
 impl PaymentItem {
-    pub fn new(payment_item_type: PaymentItemType, amount: f32, currency: Currency) -> PaymentItem {
+    pub fn new(payment_item_type: PaymentItemType, posting_date: String, amount: f32, currency: Currency) -> PaymentItem {
         PaymentItem {
             payment_item_type,
-            posting_date: None,
+            posting_date,
             amount,
             currency,
         }

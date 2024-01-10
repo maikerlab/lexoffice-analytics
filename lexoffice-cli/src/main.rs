@@ -5,13 +5,13 @@ use clap::{arg, command, Command};
 use db::models::{DbInvoice, DbVoucher};
 use dotenvy::dotenv;
 use lexoffice::LexofficeApi;
-use log::{debug, error, info, warn};
-use openapi::models::{line_item, VoucherlistVoucher};
+use log::{error, info, warn};
+use openapi::models::VoucherlistVoucher;
 use simple_logger::SimpleLogger;
-use std::{env, fmt::Error};
+use std::env;
 
 use crate::db::{
-    models::{DbLineItem, DbProduct},
+    models::{DbAddress, DbLineItem, DbProduct},
     LexofficeDb,
 };
 
@@ -42,34 +42,53 @@ async fn sync_invoice(app: &App, invoice_id: String) {
     if !app.db.invoice_exists(invoice_id.clone()).await {
         match app.api.get_invoice(invoice_id.clone()).await {
             Ok(ref invoice) => {
+                // Insert address if not existing
+                let db_address = DbAddress::from((*invoice.address).clone());
+                match app.db.insert_address(db_address).await {
+                    Ok(address_id) => info!("Added new address: {}", address_id),
+                    Err(e) => error!("Error while adding address: {:?}", e),
+                }
+
+                // Insert invoice
                 let db_invoice = DbInvoice::from(invoice.to_owned());
-                if !app.db.invoice_exists(invoice_id.clone()).await {
-                    let inserted_id = app.db.insert_invoice(db_invoice).await;
-                    match inserted_id {
-                        Ok(_) => {
-                            info!("Added new invoice: {}", invoice.voucher_number);
-                            for item in &invoice.line_items {
+                match app.db.insert_invoice(db_invoice).await {
+                    Ok(_) => {
+                        info!("Added new invoice: {}", invoice.voucher_number);
+                        // Insert line items
+                        for item in &invoice.line_items {
+                            // Currently only items with a valid ID are inserted
+                            if item.id.is_some() && !item.id.unwrap().is_nil() {
+                                if !app.db.product_exists(item.id.unwrap().to_string()).await {
+                                    let db_product = DbProduct::from(item.to_owned());
+                                    match app.db.insert_product(db_product).await {
+                                        Ok(product_id) => {
+                                            info!("Added new product: {}", product_id)
+                                        }
+                                        Err(e) => error!("Error while adding product: {:?}", e),
+                                    }
+                                }
                                 let db_lineitem = DbLineItem::from(item.to_owned());
-                                let db_product = DbProduct::from(item.to_owned());
                                 match app
                                     .db
                                     .insert_lineitem(
                                         db_lineitem,
-                                        db_product,
+                                        item.id.unwrap().to_string(),
                                         invoice.id.to_string(),
                                     )
                                     .await
                                 {
                                     Ok(item_id) => info!("Added line item: {}", item_id),
-                                    Err(e) => error!(
-                                        "Error while adding line item: {:?} - {:?}",
-                                        item.id, e
-                                    ),
+                                    Err(e) => {
+                                        error!(
+                                            "Error while adding line item: {:?} - {:?}",
+                                            item.id, e
+                                        )
+                                    }
                                 }
                             }
                         }
-                        Err(_) => error!("Error while adding invoice: {:?}", invoice_id),
                     }
+                    Err(e) => error!("Error while adding invoice: {:?}", e),
                 }
             }
             Err(e) => error!("Error while fetching invoice: {:?}", e),

@@ -31,22 +31,22 @@ pub struct VoucherlistVoucher {
     pub updated_date: String,
     #[serde(rename = "dueDate", skip_serializing_if = "Option::is_none")]
     pub due_date: Option<String>,
-    #[serde(rename = "contactId", skip_serializing_if = "Option::is_none")]
-    pub contact_id: Option<uuid::Uuid>,
-    #[serde(rename = "contactName", skip_serializing_if = "Option::is_none")]
-    pub contact_name: Option<String>,
-    #[serde(rename = "totalAmount", skip_serializing_if = "Option::is_none")]
-    pub total_amount: Option<f32>,
-    #[serde(rename = "openAmount", skip_serializing_if = "Option::is_none")]
-    pub open_amount: Option<f32>,
-    #[serde(rename = "currency", skip_serializing_if = "Option::is_none")]
-    pub currency: Option<Currency>,
+    #[serde(rename = "contactId", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
+    pub contact_id: Option<Option<uuid::Uuid>>,
+    #[serde(rename = "contactName")]
+    pub contact_name: String,
+    #[serde(rename = "totalAmount")]
+    pub total_amount: f32,
+    #[serde(rename = "openAmount")]
+    pub open_amount: f32,
+    #[serde(rename = "currency")]
+    pub currency: Currency,
     #[serde(rename = "archived")]
     pub archived: bool,
 }
 
 impl VoucherlistVoucher {
-    pub fn new(id: uuid::Uuid, voucher_type: VoucherType, voucher_status: VoucherStatus, voucher_number: String, voucher_date: String, created_date: String, updated_date: String, archived: bool) -> VoucherlistVoucher {
+    pub fn new(id: uuid::Uuid, voucher_type: VoucherType, voucher_status: VoucherStatus, voucher_number: String, voucher_date: String, created_date: String, updated_date: String, contact_name: String, total_amount: f32, open_amount: f32, currency: Currency, archived: bool) -> VoucherlistVoucher {
         VoucherlistVoucher {
             id,
             voucher_type,
@@ -57,10 +57,10 @@ impl VoucherlistVoucher {
             updated_date,
             due_date: None,
             contact_id: None,
-            contact_name: None,
-            total_amount: None,
-            open_amount: None,
-            currency: None,
+            contact_name,
+            total_amount,
+            open_amount,
+            currency,
             archived,
         }
     }

@@ -1,13 +1,12 @@
 pub mod models;
-use std::borrow::Borrow;
 
-use self::models::{DbInvoice, DbLineItem, DbProduct, DbVoucher};
+use self::models::{DbInvoice, DbLineItem, DbProduct, DbVoucher, DbAddress};
 use crate::lexoffice::EnumToString;
 use log::info;
 use openapi::models::*;
 use sqlx::{
     postgres::PgPoolOptions,
-    types::chrono::{DateTime, NaiveDateTime},
+    types::{chrono::{DateTime, NaiveDateTime}, Uuid},
     Error, PgPool,
 };
 
@@ -38,13 +37,13 @@ impl From<Invoice> for DbInvoice {
             voucher_number: invoice.voucher_number,
             voucher_date: parse_datetime(invoice.voucher_date).unwrap(),
             due_date: parse_datetime(invoice.due_date),
-            address_id: Some(invoice.address.contact_id.unwrap().unwrap().to_string()),
-            currency: "todo".to_string(),
-            total_net_amount: 0.0,
-            total_gross_amount: 0.0,
-            total_tax_amount: 0.0,
-            total_discount_absolute: 0.0,
-            total_discount_percentage: 0.0,
+            address_id: invoice.address.contact_id.map(|id| id.to_string()),
+            currency: invoice.total_price.currency.enum_to_string(),
+            total_net_amount: invoice.total_price.total_net_amount as f64,
+            total_gross_amount: invoice.total_price.total_gross_amount as f64,
+            total_tax_amount: invoice.total_price.total_tax_amount as f64,
+            total_discount_absolute: invoice.total_price.total_discount_absolute.unwrap_or(0.0) as f64,
+            total_discount_percentage: invoice.total_price.total_discount_percentage.unwrap_or(0.0) as f64
         }
     }
 }
@@ -61,13 +60,13 @@ impl From<VoucherlistVoucher> for DbVoucher {
             updated_date: parse_datetime(v.updated_date).unwrap(),
             due_date: parse_datetime(v.due_date.unwrap_or_default()),
             contact_id: match v.contact_id {
-                Some(c_id) => Some(c_id.to_string()),
+                Some(c_id) => Some(c_id.unwrap().to_string()),
                 None => None,
             },
             contact_name: v.contact_name,
-            total_amount: v.total_amount.map(|val| f64::from(val)),
-            open_amount: v.open_amount.map(|val| f64::from(val)),
-            currency: v.currency.map(|val| val.enum_to_string()),
+            total_amount: v.total_amount as f64,
+            open_amount: v.open_amount as f64,
+            currency: v.currency.enum_to_string(),
             archived: match v.archived {
                 true => 1,
                 false => 0,
@@ -102,6 +101,15 @@ impl From<LineItem> for DbProduct {
             name: item.name,
             description: item.description,
         }
+    }
+}
+
+impl From<VoucherAddress> for DbAddress {
+    fn from(a: VoucherAddress) -> Self {
+        Self { contact_id: match a.contact_id {
+            Some(c_id) => c_id.to_string(),
+            None => "".to_string()
+        }, name: a.name, supplement: a.supplement.map(|s| s.unwrap()), street: a.street, city: a.city, zip: a.zip, country_code: a.country_code }
     }
 }
 
@@ -240,15 +248,11 @@ SELECT EXISTS(SELECT 1 FROM products WHERE id=$1)
     pub async fn insert_lineitem(
         &self,
         mut item: DbLineItem,
-        product: DbProduct,
+        product_id: String,
         voucher_id: String,
     ) -> Result<i32, Error> {
-        if !self.product_exists(product.id.to_string()).await {
-            let product_id = self.insert_product(product).await?;
-            info!("Added new product: {}", product_id);
-            item.product_id = product_id;
-            item.voucher_id = voucher_id;
-        }
+        item.voucher_id = voucher_id;
+        item.product_id = product_id;
 
         let rec = sqlx::query!(
             r#"
@@ -340,6 +344,81 @@ RETURNING id
 
         Ok(rec.id)
     }
+
+    pub async fn get_address_by_id_or_collective(&self, address: &DbAddress) -> Option<DbAddress> {
+        if address.contact_id != "" {
+            let result = sqlx::query_as!(
+                DbAddress,
+            r#"
+                SELECT contact_id, name, supplement, street, city, zip, country_code
+                FROM addresses WHERE contact_id=$1
+            "#,
+                address.contact_id
+            )
+            .fetch_one(&self.db_pool)
+            .await;
+            result.ok()
+        } else {
+            let result = sqlx::query_as!(
+                DbAddress,
+            r#"
+                SELECT contact_id, name, supplement, street, city, zip, country_code 
+                FROM addresses 
+                WHERE type='collective' 
+                AND name=$1 AND supplement=$2 AND street=$3 AND city=$4 AND zip=$5 AND country_code=$6
+            "#,
+                address.name,
+                address.supplement,
+                address.street,
+                address.city,
+                address.zip,
+                address.country_code
+            )
+            .fetch_one(&self.db_pool)
+            .await;
+    
+            result.ok()
+        }
+
+    }
+
+    pub async fn insert_address(&self, mut address: DbAddress) -> Result<String, Error> {
+        let contact = self.get_address_by_id_or_collective(&address).await;
+        if contact.is_some() {
+            return Ok(contact.unwrap().contact_id);
+        }
+        
+        let address_type: String;
+        if address.contact_id == "" {
+            // Does not exist and no ID -> collective contact -> generate new ID
+            address_type = "collective".to_string();
+            address.contact_id = Uuid::new_v4().to_string();
+        } else {
+            // Has ID -> customer or vendor
+            address_type = "customer".to_string();
+        }
+
+        let rec = sqlx::query!(
+            r#"
+        INSERT INTO addresses ( contact_id, type, name, supplement, street, city, zip, country_code )
+        VALUES ( $1, $2, $3, $4, $5, $6, $7, $8 )
+        RETURNING contact_id
+            "#,
+            address.contact_id,
+            address_type,
+            address.name,
+            address.supplement,
+            address.street,
+            address.city,
+            address.zip,
+            address.country_code
+        )
+        .fetch_one(&self.db_pool)
+        .await?;
+
+        Ok(rec.contact_id)
+    }
+
 }
 
 #[cfg(test)]

@@ -14,8 +14,8 @@
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct VoucherAddress {
-    #[serde(rename = "contactId", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]
-    pub contact_id: Option<Option<uuid::Uuid>>,
+    #[serde(rename = "contactId", skip_serializing_if = "Option::is_none")]
+    pub contact_id: Option<uuid::Uuid>,
     #[serde(rename = "name")]
     pub name: String,
     #[serde(rename = "supplement", default, with = "::serde_with::rust::double_option", skip_serializing_if = "Option::is_none")]

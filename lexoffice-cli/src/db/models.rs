@@ -2,13 +2,13 @@ use sqlx::{self, types::chrono::NaiveDateTime};
 
 #[derive(Debug, sqlx::FromRow)]
 pub struct DbAddress {
-    pub contactid: String,
-    pub name: Option<String>,
+    pub contact_id: String,
+    pub name: String,
     pub supplement: Option<String>,
     pub street: Option<String>,
     pub city: Option<String>,
     pub zip: Option<String>,
-    pub countrycode: Option<String>,
+    pub country_code: String,
 }
 
 #[derive(Debug, sqlx::FromRow)]
@@ -67,10 +67,10 @@ pub struct DbVoucher {
     pub updated_date: NaiveDateTime,
     pub due_date: Option<NaiveDateTime>,
     pub contact_id: Option<String>,
-    pub contact_name: Option<String>,
-    pub total_amount: Option<f64>,
-    pub open_amount: Option<f64>,
-    pub currency: Option<String>,
+    pub contact_name: String,
+    pub total_amount: f64,
+    pub open_amount: f64,
+    pub currency: String,
     pub archived: i8,
 }
 
