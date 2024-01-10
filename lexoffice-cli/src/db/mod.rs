@@ -1,6 +1,9 @@
 pub mod models;
-use self::models::{DbInvoice, DbVoucher};
+use std::borrow::Borrow;
+
+use self::models::{DbInvoice, DbLineItem, DbProduct, DbVoucher};
 use crate::lexoffice::EnumToString;
+use log::info;
 use openapi::models::*;
 use sqlx::{
     postgres::PgPoolOptions,
@@ -35,13 +38,13 @@ impl From<Invoice> for DbInvoice {
             voucher_number: invoice.voucher_number,
             voucher_date: parse_datetime(invoice.voucher_date).unwrap(),
             due_date: parse_datetime(invoice.due_date),
-            address_id: None,
-            address_name: invoice.address.name,
-            address_supplement: None,
-            address_street: None,
-            address_city: None,
-            address_zip: None,
-            address_countrycode: None,
+            address_id: Some(invoice.address.contact_id.unwrap().unwrap().to_string()),
+            currency: "todo".to_string(),
+            total_net_amount: 0.0,
+            total_gross_amount: 0.0,
+            total_tax_amount: 0.0,
+            total_discount_absolute: 0.0,
+            total_discount_percentage: 0.0,
         }
     }
 }
@@ -73,6 +76,35 @@ impl From<VoucherlistVoucher> for DbVoucher {
     }
 }
 
+impl From<LineItem> for DbLineItem {
+    fn from(item: LineItem) -> Self {
+        Self {
+            id: 1,
+            product_id: "".to_string(),
+            voucher_id: "".to_string(),
+            quantity: 1.0,
+            unit_name: item.unit_name.unwrap_or("".to_string()),
+            currency: "".to_string(),
+            net_amount: 2.0,
+            gross_amount: 2.0,
+            tax_rate_percentage: Some(2.0),
+            discount_percentage: Some(2.0),
+            line_item_amount: Some(2.0),
+        }
+    }
+}
+
+impl From<LineItem> for DbProduct {
+    fn from(item: LineItem) -> Self {
+        Self {
+            id: item.id.unwrap_or_default().to_string(),
+            product_type: item.r#type.enum_to_string(),
+            name: item.name,
+            description: item.description,
+        }
+    }
+}
+
 pub struct LexofficeDb {
     db_pool: PgPool,
 }
@@ -97,7 +129,9 @@ impl LexofficeDb {
         sqlx::query_as!(
         DbVoucher,
 r#"
-    SELECT id, archived, contact_id, contact_name, voucher_date, created_date, due_date, updated_date, voucher_number, voucher_type, voucher_status, total_amount, open_amount, currency FROM vouchers
+    SELECT id, archived, contact_id, contact_name, voucher_date, created_date, due_date, updated_date, 
+    voucher_number, voucher_type, voucher_status, total_amount, open_amount, currency 
+    FROM voucherlist
 "#
     )
     .fetch_all(&self.db_pool).await
@@ -106,7 +140,7 @@ r#"
     pub async fn get_voucher_by_id(&self, voucher_id: String) -> Result<DbVoucher, Error> {
         sqlx::query_as!(
             DbVoucher,
-            r#"select * from vouchers where id = $1"#,
+            r#"select * FROM voucherlist where id = $1"#,
             voucher_id
         )
         .fetch_one(&self.db_pool)
@@ -119,7 +153,7 @@ r#"
     ) -> Result<Vec<DbVoucher>, Error> {
         sqlx::query_as!(
             DbVoucher,
-            r#"select * from vouchers where voucher_type = $1"#,
+            r#"SELECT * FROM voucherlist where voucher_type = $1"#,
             voucher_type
         )
         .fetch_all(&self.db_pool)
@@ -127,45 +161,125 @@ r#"
     }
 
     pub async fn get_all_invoices(&self) -> Result<Vec<DbInvoice>, Error> {
-        sqlx::query_as!(DbInvoice, r#"select * from invoices"#)
+        sqlx::query_as!(DbInvoice, 
+    r#"SELECT id, organization_id, created_date, updated_date, version, language, archived, voucher_status, voucher_number, voucher_date, due_date, address_id, currency, total_net_amount, total_gross_amount, total_tax_amount, total_discount_absolute, total_discount_percentage
+        FROM invoices
+    "#)
             .fetch_all(&self.db_pool)
             .await
     }
 
-    pub async fn insert_voucher(&self, voucher: DbVoucher) -> Result<usize, Error> {
+    pub async fn insert_voucher(&self, voucher: DbVoucher) -> Result<String, Error> {
         let rec = sqlx::query!(
-        r#"
-INSERT INTO vouchers ( id, voucher_type, voucher_status, voucher_number, voucher_date, created_date, updated_date, due_date, contact_id, contact_name, total_amount, open_amount, currency, archived )
-VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14 )
-RETURNING id
-        "#,
-        voucher.id,
-        voucher.voucher_type,
-        voucher.voucher_status,
-        voucher.voucher_number,
-        voucher.voucher_date,
-        voucher.created_date,
-        voucher.updated_date,
-        voucher.due_date,
-        voucher.contact_id,
-        voucher.contact_name,
-        voucher.total_amount,
-        voucher.open_amount,
-        voucher.currency,
-        voucher.archived == 1
+            r#"
+    INSERT INTO voucherlist ( 
+        id, voucher_type, voucher_status, voucher_number, voucher_date, 
+        created_date, updated_date, due_date, contact_id, contact_name, 
+        total_amount, open_amount, currency, archived 
     )
-    .fetch_one(&self.db_pool)
-    .await?;
+    VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14 )
+    RETURNING id
+            "#,
+            voucher.id,
+            voucher.voucher_type,
+            voucher.voucher_status,
+            voucher.voucher_number,
+            voucher.voucher_date,
+            voucher.created_date,
+            voucher.updated_date,
+            voucher.due_date,
+            voucher.contact_id,
+            voucher.contact_name,
+            voucher.total_amount,
+            voucher.open_amount,
+            voucher.currency,
+            voucher.archived == 1
+        )
+        .fetch_one(&self.db_pool)
+        .await?;
 
-        println!("Inserted voucher with ID: {:?}", rec.id);
+        Ok(rec.id)
+    }
 
-        Ok(1)
+    pub async fn insert_product(&self, product: DbProduct) -> Result<String, Error> {
+        let rec = sqlx::query!(
+            r#"
+    INSERT INTO products ( id, type, name, description )
+    VALUES ( $1, $2, $3, $4 )
+    RETURNING id
+            "#,
+            product.id,
+            product.product_type,
+            product.name,
+            product.description
+        )
+        .fetch_one(&self.db_pool)
+        .await?;
+
+        Ok(rec.id)
+    }
+
+    pub async fn product_exists(&self, product_id: String) -> bool {
+        let result = sqlx::query!(
+            r#"
+SELECT EXISTS(SELECT 1 FROM products WHERE id=$1)
+        "#,
+            product_id
+        )
+        .fetch_one(&self.db_pool)
+        .await;
+
+        let res = match result {
+            Ok(rec) => rec.exists.unwrap(),
+            Err(_) => false,
+        };
+
+        res
+    }
+
+    pub async fn insert_lineitem(
+        &self,
+        mut item: DbLineItem,
+        product: DbProduct,
+        voucher_id: String,
+    ) -> Result<i32, Error> {
+        if !self.product_exists(product.id.to_string()).await {
+            let product_id = self.insert_product(product).await?;
+            info!("Added new product: {}", product_id);
+            item.product_id = product_id;
+            item.voucher_id = voucher_id;
+        }
+
+        let rec = sqlx::query!(
+            r#"
+    INSERT INTO line_items (
+        product_id, voucher_id, quantity, unit_name, currency, 
+        net_amount, gross_amount, tax_rate_percentage, discount_percentage, line_item_amount
+    )
+    VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10 )
+    RETURNING id
+            "#,
+            item.product_id,
+            item.voucher_id,
+            item.quantity,
+            item.unit_name,
+            item.currency,
+            item.net_amount,
+            item.gross_amount,
+            item.tax_rate_percentage,
+            item.discount_percentage,
+            item.line_item_amount
+        )
+        .fetch_one(&self.db_pool)
+        .await?;
+
+        Ok(rec.id)
     }
 
     pub async fn voucher_exists(&self, voucher_id: String) -> bool {
         let result = sqlx::query!(
             r#"
-SELECT EXISTS(SELECT 1 FROM vouchers WHERE id=$1)
+SELECT EXISTS(SELECT 1 FROM voucherlist WHERE id=$1)
         "#,
             voucher_id
         )
@@ -181,11 +295,31 @@ SELECT EXISTS(SELECT 1 FROM vouchers WHERE id=$1)
         res
     }
 
+    pub async fn invoice_exists(&self, invoice_id: String) -> bool {
+        let result = sqlx::query!(
+            r#"
+SELECT EXISTS(SELECT 1 FROM invoices WHERE id=$1)
+        "#,
+            invoice_id
+        )
+        .fetch_one(&self.db_pool)
+        .await;
+
+        let res = match result {
+            Ok(rec) => rec.exists.unwrap(),
+            Err(_) => false,
+        };
+
+        res
+    }
+
     pub async fn insert_invoice(&self, invoice: DbInvoice) -> Result<String, Error> {
         let rec = sqlx::query!(
         r#"
-INSERT INTO invoices ( id, organization_id, created_date, updated_date, version, language, archived, voucher_status, voucher_number, voucher_date, due_date, address_id, address_name, address_supplement, address_street, address_city, address_zip, address_countrycode )
-VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18 )
+INSERT INTO invoices ( 
+    id, organization_id, created_date, updated_date, version, language, archived, voucher_status, voucher_number, 
+    voucher_date, due_date, address_id )
+VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12 )
 RETURNING id
         "#,
         invoice.id,
@@ -199,13 +333,7 @@ RETURNING id
         invoice.voucher_number,
         invoice.voucher_date,
         invoice.due_date,
-        invoice.address_id,
-        invoice.address_name,
-        invoice.address_supplement,
-        invoice.address_street,
-        invoice.address_city,
-        invoice.address_zip,
-        invoice.address_countrycode
+        invoice.address_id
     )
     .fetch_one(&self.db_pool)
     .await?;
@@ -218,33 +346,42 @@ RETURNING id
 mod tests {
     use super::*;
     use futures::executor::block_on;
-    use sqlx::types::Uuid;
+    use sqlx::types::{
+        chrono::{NaiveDate, NaiveTime},
+        Uuid,
+    };
 
     #[test]
     fn test_insert_invoice() {
         let invoice_id = Uuid::new_v4();
+        let date_time = NaiveDateTime::new(
+            NaiveDate::from_ymd_opt(2023, 12, 24).unwrap(),
+            NaiveTime::from_hms_milli_opt(12, 12, 33, 100).unwrap(),
+        );
         let invoice = DbInvoice {
             id: invoice_id.to_string(),
-            organization_id: None,
-            created_date: None,
-            updated_date: None,
-            version: None,
-            language: None,
-            archived: None,
-            voucher_status: Some("draft".to_string()),
-            voucher_number: Some("test".to_string()),
-            voucher_date: None,
-            due_date: None,
+            organization_id: Some("myid".to_string()),
+            created_date: date_time,
+            updated_date: date_time,
+            version: 1,
+            language: "DE".to_string(),
+            archived: 0,
+            voucher_status: "draft".to_string(),
+            voucher_number: "test".to_string(),
+            voucher_date: date_time,
+            due_date: Some(date_time),
             address_id: Some("a1".to_string()),
-            address_name: Some("Max Mustermann".to_string()),
+            address_name: "Max Mustermann".to_string(),
             address_street: Some("Musterstr. 1".to_string()),
             address_zip: Some("20095".to_string()),
             address_city: Some("Hamburg".to_string()),
             address_countrycode: Some("DE".to_string()),
             address_supplement: Some("none".to_string()),
         };
-        let pool = block_on(connect_db()).unwrap();
-        let result = block_on(insert_invoice(&pool, invoice));
-        assert_eq!(result.unwrap(), 1);
+        let db = block_on(LexofficeDb::new(
+            "postgres://bunu:bunu@localhost:5434/bunu".to_string(),
+        ));
+        let result = block_on(db.insert_invoice(invoice));
+        assert_eq!(result.unwrap(), invoice_id.to_string());
     }
 }

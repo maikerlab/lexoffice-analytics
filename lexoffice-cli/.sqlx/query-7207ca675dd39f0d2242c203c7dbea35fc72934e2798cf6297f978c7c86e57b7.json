@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select * from invoices",
+  "query": "SELECT id, organization_id, created_date, updated_date, version, language, archived, voucher_status, voucher_number, voucher_date, due_date, address_id, currency, total_net_amount, total_gross_amount, total_tax_amount, total_discount_absolute, total_discount_percentage\n        FROM invoices\n    ",
   "describe": {
     "columns": [
       {
@@ -65,33 +65,33 @@
       },
       {
         "ordinal": 12,
-        "name": "address_name",
+        "name": "currency",
         "type_info": "Varchar"
       },
       {
         "ordinal": 13,
-        "name": "address_supplement",
-        "type_info": "Varchar"
+        "name": "total_net_amount",
+        "type_info": "Float8"
       },
       {
         "ordinal": 14,
-        "name": "address_street",
-        "type_info": "Varchar"
+        "name": "total_gross_amount",
+        "type_info": "Float8"
       },
       {
         "ordinal": 15,
-        "name": "address_city",
-        "type_info": "Varchar"
+        "name": "total_tax_amount",
+        "type_info": "Float8"
       },
       {
         "ordinal": 16,
-        "name": "address_zip",
-        "type_info": "Varchar"
+        "name": "total_discount_absolute",
+        "type_info": "Float8"
       },
       {
         "ordinal": 17,
-        "name": "address_countrycode",
-        "type_info": "Varchar"
+        "name": "total_discount_percentage",
+        "type_info": "Float8"
       }
     ],
     "parameters": {
@@ -100,23 +100,23 @@
     "nullable": [
       false,
       true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
       true,
       true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
     ]
   },
-  "hash": "addfccab44f439bfb4674cdebf9b32dc99d778ec97b10b7341885e77f0813969"
+  "hash": "7207ca675dd39f0d2242c203c7dbea35fc72934e2798cf6297f978c7c86e57b7"
 }

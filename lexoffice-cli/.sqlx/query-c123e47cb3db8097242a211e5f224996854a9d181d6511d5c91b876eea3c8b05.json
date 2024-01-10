@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select * from vouchers where id = $1",
+  "query": "\n    SELECT id, archived, contact_id, contact_name, voucher_date, created_date, due_date, updated_date, \n    voucher_number, voucher_type, voucher_status, total_amount, open_amount, currency \n    FROM voucherlist\n",
   "describe": {
     "columns": [
       {
@@ -10,17 +10,17 @@
       },
       {
         "ordinal": 1,
-        "name": "voucher_type",
-        "type_info": "Varchar"
+        "name": "archived",
+        "type_info": "Bool"
       },
       {
         "ordinal": 2,
-        "name": "voucher_status",
+        "name": "contact_id",
         "type_info": "Varchar"
       },
       {
         "ordinal": 3,
-        "name": "voucher_number",
+        "name": "contact_name",
         "type_info": "Varchar"
       },
       {
@@ -35,66 +35,64 @@
       },
       {
         "ordinal": 6,
-        "name": "updated_date",
-        "type_info": "Timestamp"
-      },
-      {
-        "ordinal": 7,
         "name": "due_date",
         "type_info": "Timestamp"
       },
       {
+        "ordinal": 7,
+        "name": "updated_date",
+        "type_info": "Timestamp"
+      },
+      {
         "ordinal": 8,
-        "name": "contact_id",
+        "name": "voucher_number",
         "type_info": "Varchar"
       },
       {
         "ordinal": 9,
-        "name": "contact_name",
+        "name": "voucher_type",
         "type_info": "Varchar"
       },
       {
         "ordinal": 10,
+        "name": "voucher_status",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 11,
         "name": "total_amount",
         "type_info": "Float8"
       },
       {
-        "ordinal": 11,
+        "ordinal": 12,
         "name": "open_amount",
         "type_info": "Float8"
       },
       {
-        "ordinal": 12,
+        "ordinal": 13,
         "name": "currency",
         "type_info": "Varchar"
-      },
-      {
-        "ordinal": 13,
-        "name": "archived",
-        "type_info": "Bool"
       }
     ],
     "parameters": {
-      "Left": [
-        "Text"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
+      false,
       true,
       true,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
       true,
       true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true
+      false
     ]
   },
-  "hash": "4dd40f151c9311619b06cb9377daa961a9e12f495285d7fd1b4d9b5f138a00d6"
+  "hash": "c123e47cb3db8097242a211e5f224996854a9d181d6511d5c91b876eea3c8b05"
 }

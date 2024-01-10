@@ -5,10 +5,15 @@ use clap::{arg, command, Command};
 use db::models::{DbInvoice, DbVoucher};
 use dotenvy::dotenv;
 use lexoffice::LexofficeApi;
-use openapi::models::VoucherlistVoucher;
-use std::env;
+use log::{debug, error, info, warn};
+use openapi::models::{line_item, VoucherlistVoucher};
+use simple_logger::SimpleLogger;
+use std::{env, fmt::Error};
 
-use crate::db::LexofficeDb;
+use crate::db::{
+    models::{DbLineItem, DbProduct},
+    LexofficeDb,
+};
 
 struct App {
     api: LexofficeApi,
@@ -16,38 +21,66 @@ struct App {
 }
 
 async fn sync_vouchers(app: &App, vouchers: Vec<VoucherlistVoucher>) {
-    for voucher in vouchers {
+    let mut inserted = 0;
+    for voucher in &vouchers {
         if !app.db.voucher_exists(voucher.id.to_string()).await {
-            println!(
-                "Insert voucher into DB: {:?}",
-                voucher.clone().voucher_number
-            );
+            let db_voucher = DbVoucher::from(voucher.to_owned());
+            match app.db.insert_voucher(db_voucher).await {
+                Ok(_) => {
+                    inserted += 1;
+                    info!("Added new voucher: {}", voucher.voucher_number);
+                }
+                Err(_) => error!("Error while adding voucher"),
+            }
         }
-
-        let db_voucher = DbVoucher::from(voucher);
-        app.db.insert_voucher(db_voucher).await.ok();
     }
+
+    info!("Synced {} vouchers, inserted: {}", vouchers.len(), inserted);
 }
 
 async fn sync_invoice(app: &App, invoice_id: String) {
-    let result = app.api.get_invoice(invoice_id.clone()).await;
-
-    match result {
-        Ok(ref invoice) => {
-            let db_invoice = DbInvoice::from(invoice.to_owned());
-            let inserted_id = app.db.insert_invoice(db_invoice).await;
-            match inserted_id {
-                Ok(invoice_id) => println!("Inserted invoice with ID: {}", invoice_id),
-                Err(e) => println!("Error inserting invoice: {:?}", e),
+    if !app.db.invoice_exists(invoice_id.clone()).await {
+        match app.api.get_invoice(invoice_id.clone()).await {
+            Ok(ref invoice) => {
+                let db_invoice = DbInvoice::from(invoice.to_owned());
+                if !app.db.invoice_exists(invoice_id.clone()).await {
+                    let inserted_id = app.db.insert_invoice(db_invoice).await;
+                    match inserted_id {
+                        Ok(_) => {
+                            info!("Added new invoice: {}", invoice.voucher_number);
+                            for item in &invoice.line_items {
+                                let db_lineitem = DbLineItem::from(item.to_owned());
+                                let db_product = DbProduct::from(item.to_owned());
+                                match app
+                                    .db
+                                    .insert_lineitem(
+                                        db_lineitem,
+                                        db_product,
+                                        invoice.id.to_string(),
+                                    )
+                                    .await
+                                {
+                                    Ok(item_id) => info!("Added line item: {}", item_id),
+                                    Err(e) => error!(
+                                        "Error while adding line item: {:?} - {:?}",
+                                        item.id, e
+                                    ),
+                                }
+                            }
+                        }
+                        Err(_) => error!("Error while adding invoice: {:?}", invoice_id),
+                    }
+                }
             }
+            Err(e) => error!("Error while fetching invoice: {:?}", e),
         }
-        Err(e) => println!("Error syncing invoice: {:?}", e),
     }
 }
 
 async fn sync_lexoffice(app: &App, types: Vec<String>) {
     // First get all vouchers from voucherlist endpoint and save into DB
     let mut current_page = 1;
+    let mut fetched_vouchers = 0;
     let page_size = 250;
     loop {
         let res = app
@@ -55,11 +88,12 @@ async fn sync_lexoffice(app: &App, types: Vec<String>) {
             .get_voucherlist(types.join(","), current_page, page_size)
             .await;
         match res {
-            Err(e) => println!("error getting voucherlist: {}", e),
+            Err(e) => error!("error getting voucherlist: {}", e),
             Ok(voucher_list) => {
-                println!(
-                    "Fetched {} of {} vouchers",
-                    voucher_list.number_of_elements, voucher_list.total_elements
+                fetched_vouchers += voucher_list.number_of_elements;
+                info!(
+                    "Fetched {} of {} vouchers from Voucherlist",
+                    fetched_vouchers, voucher_list.total_elements
                 );
                 let vouchers = voucher_list.content;
                 sync_vouchers(app, vouchers).await;
@@ -67,12 +101,32 @@ async fn sync_lexoffice(app: &App, types: Vec<String>) {
                 if voucher_list.last {
                     break;
                 }
+                break;
                 current_page += 1;
             }
         }
     }
 
-    // Get saved vouchers from DB and get+save invoices
+    // For each voucher type to sync - get from endpoint and save to DB
+    for t in types {
+        let vouchers_by_type = app.db.get_vouchers_by_type(t).await;
+        match vouchers_by_type {
+            Ok(vouchers) => {
+                for v in vouchers {
+                    if v.voucher_type == "invoice" {
+                        sync_invoice(app, v.id).await;
+                    } else {
+                        warn!(
+                            "Sync. of voucher type {} currently not supported",
+                            v.voucher_type
+                        );
+                    }
+                }
+            }
+            Err(_) => {}
+        }
+    }
+
     let invoices = app
         .db
         .get_vouchers_by_type("invoice".to_string())
@@ -83,28 +137,14 @@ async fn sync_lexoffice(app: &App, types: Vec<String>) {
     }
 }
 
-async fn show_vouchers(app: &App) {
+async fn db_info(app: &App) {
     let all_vouchers = app.db.get_all_vouchers().await.unwrap_or(vec![]);
+    let invoices = app.db.get_all_invoices().await.unwrap_or(vec![]);
 
-    println!("Displaying {} vouchers", all_vouchers.len());
-    for voucher in all_vouchers {
-        println!("-----------");
-        println!("ID: {}", voucher.id);
-        println!("Type: {}", voucher.voucher_type);
-        println!(
-            "Contact Name: {}",
-            voucher.contact_name.unwrap_or("n/a".to_string())
-        );
-    }
-
-    let all_invoices = app.db.get_all_invoices().await.unwrap_or(vec![]);
-    println!("\n\nDisplaying {} invoices", all_invoices.len());
-    for invoice in all_invoices {
-        println!("-----------");
-        println!("ID: {}", invoice.id);
-        println!("Number: {}", invoice.voucher_number);
-        println!("Updated at: {:?}", invoice.updated_date);
-    }
+    info!("----- DATABASE INFO -----");
+    info!("  - Vouchers: {}", all_vouchers.len());
+    info!("  - Invoices: {}", invoices.len());
+    info!("-------------------------");
 }
 
 #[tokio::main]
@@ -112,6 +152,12 @@ async fn main() {
     dotenv().ok();
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let api_key = env::var("LEXOFFICE_APIKEY").expect("LEXOFFICE_APIKEY must be set");
+
+    SimpleLogger::new()
+        .with_colors(true)
+        .with_level(log::LevelFilter::Info)
+        .init()
+        .unwrap();
 
     let matches = command!()
         .propagate_version(true)
@@ -160,12 +206,12 @@ async fn main() {
                         "deliverynote".to_string(),
                     ]
                     .to_vec();
-                    println!("Syncing all vouchers...");
+                    info!("Syncing all vouchers...");
                     sync_lexoffice(&app, voucher_types).await;
                 }
                 "invoices" => {
                     let voucher_types = ["invoice".to_string()].to_vec();
-                    println!("Syncing invoices...");
+                    info!("Syncing invoices...");
                     sync_lexoffice(&app, voucher_types).await;
                 }
                 _ => unreachable!(
@@ -180,11 +226,11 @@ async fn main() {
                 .unwrap()
                 .to_string();
             let voucher_types = [types_arg.clone()].to_vec();
-            println!("Showing vouchers: {:?}\n", voucher_types);
-            show_vouchers(&app).await;
+            info!("Showing vouchers: {:?}\n", voucher_types);
+            db_info(&app).await;
         }
         _ => unreachable!("Cannot parse subcommand"),
     };
 
-    println!("Finished! Exiting...");
+    info!("Finished! Exiting...");
 }

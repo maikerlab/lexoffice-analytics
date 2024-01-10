@@ -444,6 +444,11 @@ components:
         - voucherDate
         - createdDate
         - updatedDate
+        - contactId
+        - contactName
+        - totalAmount
+        - openAmount
+        - currency
         - archived
       type: object
       properties:
@@ -495,6 +500,7 @@ components:
         contactId:
           type: string
           format: uuid
+          nullable: true
         contactName:
           type: string
         totalAmount:
@@ -1221,9 +1227,15 @@ components:
       required:
         - type
         - name
+        - description
         - quantity
+        - unitName
+        - unitPrice
+        - discountPercentage
+        - lineItemAmount
       properties:
         id:
+          # only available at type 'service' or 'material'
           type: string
           format: uuid
         type:
@@ -1515,6 +1527,7 @@ components:
       type: object
       required:
         - taxType
+        - taxTypeNote
       properties:
         taxType:
           type: string
@@ -1540,10 +1553,12 @@ components:
     Payment:
       type: object
       required:
+        - openAmount
         - currency
         - paymentStatus
         - voucherType
         - voucherStatus
+        - paymentItems
       properties:
         openAmount:
           type: number
@@ -1624,6 +1639,7 @@ components:
       type: object
       required:
         - paymentItemType
+        - postingDate
         - amount
         - currency
       properties:

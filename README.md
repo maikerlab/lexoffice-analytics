@@ -27,5 +27,20 @@ When running the application, the following environment variables are expected t
 **Usage:**
 
 ```shell
-lexoffice-cli sync
+lexoffice-cli sync <VOUCHER_TYPE>
 ```
+
+The parameter `VOUCHER_TYPE` is optional and can be one of the following:
+
+- salesinvoice
+- salescreditnote
+- purchaseinvoice
+- purchasecreditnote
+- invoice
+- downpaymentinvoice
+- creditnote
+- orderconfirmation
+- quotation
+- deliverynote
+
+If `VOUCHER_TYPE` is not provided, all voucher types will be updated.

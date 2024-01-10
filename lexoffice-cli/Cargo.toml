@@ -12,3 +12,5 @@ futures = "0.3"
 sqlx = { version = "0.7.3", features = [ "runtime-tokio", "tls-rustls", "postgres", "macros", "migrate", "uuid", "chrono" ] }
 dotenvy = "0.15"
 clap = { version = "4.4.14", features = ["cargo"] }
+log = "0.4"
+simple_logger = {version = "4.3.3", features = ["stderr"]}

@@ -1,6 +1,7 @@
 use std::{thread::sleep, time::Duration};
 pub mod utils;
 
+use log::info;
 use openapi::{
     apis::{
         configuration::Configuration,
@@ -8,7 +9,7 @@ use openapi::{
         vouchers_api::{voucherlist_get, VoucherlistGetError},
         Error,
     },
-    models::{invoice, voucherlist_voucher, Invoice, VoucherList},
+    models::{invoice, line_item::Type, voucherlist_voucher, Invoice, LineItem, VoucherList},
 };
 
 pub trait EnumToString {
@@ -81,6 +82,17 @@ impl EnumToString for invoice::Language {
     }
 }
 
+impl EnumToString for Type {
+    fn enum_to_string(&self) -> String {
+        match self {
+            Type::Service => "service".to_string(),
+            Type::Material => "material".to_string(),
+            Type::Custom => "custom".to_string(),
+            Type::Text => "text".to_string(),
+        }
+    }
+}
+
 pub const MAX_REQUESTS_PER_SECOND: f32 = 2.0;
 
 fn request_delay() {
@@ -107,7 +119,7 @@ impl LexofficeApi {
         size: i32,
     ) -> Result<VoucherList, Error<VoucherlistGetError>> {
         request_delay();
-        println!("syncing voucherlist (page {})", page);
+        info!("syncing voucherlist (page {})", page);
 
         voucherlist_get(
             &self.conf,

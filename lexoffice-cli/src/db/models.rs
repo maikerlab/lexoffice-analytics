@@ -25,32 +25,34 @@ pub struct DbInvoice {
     pub voucher_date: NaiveDateTime,
     pub due_date: Option<NaiveDateTime>,
     pub address_id: Option<String>,
-    pub address_name: String,
-    pub address_supplement: Option<String>,
-    pub address_street: Option<String>,
-    pub address_city: Option<String>,
-    pub address_zip: Option<String>,
-    pub address_countrycode: Option<String>,
+    pub currency: String,
+    pub total_net_amount: f64,
+    pub total_gross_amount: f64,
+    pub total_tax_amount: f64,
+    pub total_discount_absolute: f64,
+    pub total_discount_percentage: f64,
 }
 
 #[derive(Debug, sqlx::FromRow)]
 pub struct DbLineItem {
     pub id: i32,
-    pub product_id: Option<String>,
-    pub voucher_id: Option<String>,
-    pub quantity: Option<i32>,
-    pub unit_name: Option<String>,
-    pub currency: Option<String>,
-    pub net_amount: Option<f64>,
-    pub gross_amount: Option<f64>,
-    pub tax_rate_percentage: Option<i32>,
+    pub product_id: String,
+    pub voucher_id: String,
+    pub quantity: f64,
+    pub unit_name: String,
+    pub currency: String,
+    pub net_amount: f64,
+    pub gross_amount: f64,
+    pub tax_rate_percentage: Option<f64>,
+    pub discount_percentage: Option<f64>,
+    pub line_item_amount: Option<f64>,
 }
 
 #[derive(Debug, sqlx::FromRow)]
 pub struct DbProduct {
     pub id: String,
-    pub type_: Option<String>,
-    pub name: Option<String>,
+    pub product_type: String,
+    pub name: String,
     pub description: Option<String>,
 }
 

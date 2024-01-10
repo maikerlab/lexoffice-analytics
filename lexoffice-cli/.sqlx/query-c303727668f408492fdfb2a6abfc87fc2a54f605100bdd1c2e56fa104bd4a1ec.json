@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "select * from vouchers where voucher_type = $1",
+  "query": "select * FROM voucherlist where id = $1",
   "describe": {
     "columns": [
       {
@@ -81,20 +81,20 @@
     },
     "nullable": [
       false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
       true,
       true,
       true,
       true,
       true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true,
-      true
+      false,
+      false
     ]
   },
-  "hash": "eb8e12e633319a02ea84b99739bb0501001f468ea1a1478532c995f28b15d5b8"
+  "hash": "c303727668f408492fdfb2a6abfc87fc2a54f605100bdd1c2e56fa104bd4a1ec"
 }
