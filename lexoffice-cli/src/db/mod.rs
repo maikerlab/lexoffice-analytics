@@ -1,117 +1,11 @@
 pub mod models;
 
 use self::models::{DbInvoice, DbLineItem, DbProduct, DbVoucher, DbAddress};
-use crate::lexoffice::EnumToString;
 use log::info;
-use openapi::models::*;
 use sqlx::{
     postgres::PgPoolOptions,
-    types::{chrono::{DateTime, NaiveDateTime}, Uuid},
-    Error, PgPool,
+    Error, PgPool, types::Uuid,
 };
-
-fn parse_datetime(datetime_str: String) -> Option<NaiveDateTime> {
-    let parsed_result = DateTime::parse_from_rfc3339(datetime_str.as_str());
-    match parsed_result {
-        Ok(dt) => Some(dt.naive_utc()),
-        Err(_) => None,
-    }
-}
-
-// Convert Lexoffice Invoice to database entity
-impl From<Invoice> for DbInvoice {
-    fn from(invoice: Invoice) -> Self {
-        //let _address = invoice.address.map(|a| );
-        DbInvoice {
-            id: invoice.id.to_string(),
-            organization_id: invoice.organization_id.map(|val| val.to_string()),
-            created_date: parse_datetime(invoice.created_date).unwrap(),
-            updated_date: parse_datetime(invoice.updated_date).unwrap(),
-            version: invoice.version,
-            language: invoice.language.enum_to_string(),
-            archived: match invoice.archived {
-                true => 1,
-                false => 0,
-            },
-            voucher_status: invoice.voucher_status.enum_to_string(),
-            voucher_number: invoice.voucher_number,
-            voucher_date: parse_datetime(invoice.voucher_date).unwrap(),
-            due_date: parse_datetime(invoice.due_date),
-            address_id: invoice.address.contact_id.map(|id| id.to_string()),
-            currency: invoice.total_price.currency.enum_to_string(),
-            total_net_amount: invoice.total_price.total_net_amount as f64,
-            total_gross_amount: invoice.total_price.total_gross_amount as f64,
-            total_tax_amount: invoice.total_price.total_tax_amount as f64,
-            total_discount_absolute: invoice.total_price.total_discount_absolute.unwrap_or(0.0) as f64,
-            total_discount_percentage: invoice.total_price.total_discount_percentage.unwrap_or(0.0) as f64
-        }
-    }
-}
-
-impl From<VoucherlistVoucher> for DbVoucher {
-    fn from(v: VoucherlistVoucher) -> Self {
-        DbVoucher {
-            id: v.id.to_string(),
-            voucher_type: v.voucher_type.enum_to_string(),
-            voucher_status: v.voucher_status.enum_to_string(),
-            voucher_number: v.voucher_number,
-            voucher_date: parse_datetime(v.voucher_date).unwrap(),
-            created_date: parse_datetime(v.created_date).unwrap(),
-            updated_date: parse_datetime(v.updated_date).unwrap(),
-            due_date: parse_datetime(v.due_date.unwrap_or_default()),
-            contact_id: match v.contact_id {
-                Some(c_id) => Some(c_id.unwrap().to_string()),
-                None => None,
-            },
-            contact_name: v.contact_name,
-            total_amount: v.total_amount as f64,
-            open_amount: v.open_amount as f64,
-            currency: v.currency.enum_to_string(),
-            archived: match v.archived {
-                true => 1,
-                false => 0,
-            },
-        }
-    }
-}
-
-impl From<LineItem> for DbLineItem {
-    fn from(item: LineItem) -> Self {
-        Self {
-            id: 1,
-            product_id: item.id.map(|id| id.to_string()).unwrap_or_else(|| "".to_string()),
-            voucher_id: "".to_string(),
-            quantity: item.quantity as f64,
-            unit_name: item.unit_name.unwrap_or("".to_string()),
-            currency: item.unit_price.clone().map(|up| up.currency.enum_to_string()).unwrap_or_else(|| "".to_string()),
-            net_amount: item.unit_price.clone().map(|up| up.net_amount as f64).unwrap_or_else(|| 0.0),
-            gross_amount: item.unit_price.clone().map(|up: Box<UnitPrice>| up.gross_amount as f64).unwrap_or_else(|| 0.0),
-            tax_rate_percentage: item.unit_price.clone().map(|up| up.tax_rate_percentage as f64),
-            discount_percentage: item.discount_percentage.map(|p| p as f64),
-            line_item_amount: item.line_item_amount.map(|a| a as f64),
-        }
-    }
-}
-
-impl From<LineItem> for DbProduct {
-    fn from(item: LineItem) -> Self {
-        Self {
-            id: item.id.map(|id| id.to_string()).unwrap_or_else(|| "".to_string()),
-            product_type: item.r#type.enum_to_string(),
-            name: item.name,
-            description: item.description,
-        }
-    }
-}
-
-impl From<VoucherAddress> for DbAddress {
-    fn from(a: VoucherAddress) -> Self {
-        Self { contact_id: match a.contact_id {
-            Some(c_id) => c_id.to_string(),
-            None => "".to_string()
-        }, name: a.name, supplement: a.supplement.map(|s| s.unwrap()), street: a.street, city: a.city, zip: a.zip, country_code: a.country_code }
-    }
-}
 
 pub struct LexofficeDb {
     db_pool: PgPool,
@@ -126,6 +20,16 @@ impl LexofficeDb {
             .expect("Error connecting to database");
 
         Self { db_pool }
+    }
+
+    pub async fn show_info(&self) {
+        let all_vouchers = self.get_all_vouchers().await.unwrap_or(vec![]);
+        let invoices = self.get_all_invoices().await.unwrap_or(vec![]);
+    
+        info!("----- DATABASE INFO -----");
+        info!("  - Vouchers: {}", all_vouchers.len());
+        info!("  - Invoices: {}", invoices.len());
+        info!("-------------------------");
     }
 
     pub async fn migrate(&self) -> Result<(), Error> {
