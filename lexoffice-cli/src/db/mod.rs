@@ -330,19 +330,35 @@ mod tests {
     use super::*;
     use futures::executor::block_on;
     use sqlx::types::{
-        chrono::{NaiveDate, NaiveTime},
+        chrono::{NaiveDate, NaiveTime, NaiveDateTime},
         Uuid,
     };
 
-    #[test]
-    fn test_insert_invoice() {
-        let invoice_id = Uuid::new_v4();
+    #[tokio::test]
+    async fn test_insert_invoice() {
+        let db = LexofficeDb::new(
+            "postgres://bunu:bunu@localhost:5434/bunu".to_string(),
+        ).await;
+
+        let address_id = Uuid::new_v4().to_string();
+        let address = DbAddress {
+            contact_id: address_id.clone(), 
+            name: String::from("max"), 
+            supplement: Some(String::from("sup")), 
+            street: Some(String::from("teststreet")), 
+            city: Some(String::from("testcity")), 
+            zip: Some(String::from("12345")), 
+            country_code: String::from("DE"), 
+        };
+        assert_eq!(db.insert_address(address).await.unwrap(), address_id);
+    
+        let invoice_id = Uuid::new_v4().to_string();
         let date_time = NaiveDateTime::new(
             NaiveDate::from_ymd_opt(2023, 12, 24).unwrap(),
             NaiveTime::from_hms_milli_opt(12, 12, 33, 100).unwrap(),
         );
         let invoice = DbInvoice {
-            id: invoice_id.to_string(),
+            id: invoice_id.clone(),
             organization_id: Some("myid".to_string()),
             created_date: date_time,
             updated_date: date_time,
@@ -353,18 +369,16 @@ mod tests {
             voucher_number: "test".to_string(),
             voucher_date: date_time,
             due_date: Some(date_time),
-            address_id: Some("a1".to_string()),
-            address_name: "Max Mustermann".to_string(),
-            address_street: Some("Musterstr. 1".to_string()),
-            address_zip: Some("20095".to_string()),
-            address_city: Some("Hamburg".to_string()),
-            address_countrycode: Some("DE".to_string()),
-            address_supplement: Some("none".to_string()),
+            address_id: Some(address_id),
+            currency: "EUR".to_string(),
+            total_net_amount: 15.0,
+            total_gross_amount: 20.0,
+            total_tax_amount: 5.0,
+            total_discount_absolute: 1.0,
+            total_discount_percentage: 4.0,
         };
-        let db = block_on(LexofficeDb::new(
-            "postgres://bunu:bunu@localhost:5434/bunu".to_string(),
-        ));
-        let result = block_on(db.insert_invoice(invoice));
-        assert_eq!(result.unwrap(), invoice_id.to_string());
+
+        let result = db.insert_invoice(invoice).await;
+        assert_eq!(invoice_id, result.unwrap());
     }
 }
