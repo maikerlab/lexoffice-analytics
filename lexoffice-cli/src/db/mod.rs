@@ -79,16 +79,16 @@ impl From<LineItem> for DbLineItem {
     fn from(item: LineItem) -> Self {
         Self {
             id: 1,
-            product_id: "".to_string(),
+            product_id: item.id.map(|id| id.to_string()).unwrap_or_else(|| "".to_string()),
             voucher_id: "".to_string(),
-            quantity: 1.0,
+            quantity: item.quantity as f64,
             unit_name: item.unit_name.unwrap_or("".to_string()),
-            currency: "".to_string(),
-            net_amount: 2.0,
-            gross_amount: 2.0,
-            tax_rate_percentage: Some(2.0),
-            discount_percentage: Some(2.0),
-            line_item_amount: Some(2.0),
+            currency: item.unit_price.clone().map(|up| up.currency.enum_to_string()).unwrap_or_else(|| "".to_string()),
+            net_amount: item.unit_price.clone().map(|up| up.net_amount as f64).unwrap_or_else(|| 0.0),
+            gross_amount: item.unit_price.clone().map(|up: Box<UnitPrice>| up.gross_amount as f64).unwrap_or_else(|| 0.0),
+            tax_rate_percentage: item.unit_price.clone().map(|up| up.tax_rate_percentage as f64),
+            discount_percentage: item.discount_percentage.map(|p| p as f64),
+            line_item_amount: item.line_item_amount.map(|a| a as f64),
         }
     }
 }
@@ -96,7 +96,7 @@ impl From<LineItem> for DbLineItem {
 impl From<LineItem> for DbProduct {
     fn from(item: LineItem) -> Self {
         Self {
-            id: item.id.unwrap_or_default().to_string(),
+            id: item.id.map(|id| id.to_string()).unwrap_or_else(|| "".to_string()),
             product_type: item.r#type.enum_to_string(),
             name: item.name,
             description: item.description,

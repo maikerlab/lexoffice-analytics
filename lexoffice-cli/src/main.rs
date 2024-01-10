@@ -55,6 +55,7 @@ async fn sync_invoice(app: &App, invoice_id: String) {
                     Ok(_) => {
                         info!("Added new invoice: {}", invoice.voucher_number);
                         // Insert line items
+                        let mut li_inserted = 0;
                         for item in &invoice.line_items {
                             // Currently only items with a valid ID are inserted
                             if item.id.is_some() && !item.id.unwrap().is_nil() {
@@ -77,7 +78,7 @@ async fn sync_invoice(app: &App, invoice_id: String) {
                                     )
                                     .await
                                 {
-                                    Ok(item_id) => info!("Added line item: {}", item_id),
+                                    Ok(_) => li_inserted += 1,
                                     Err(e) => {
                                         error!(
                                             "Error while adding line item: {:?} - {:?}",
@@ -87,6 +88,7 @@ async fn sync_invoice(app: &App, invoice_id: String) {
                                 }
                             }
                         }
+                        info!("Added {} line items of invoice {}", li_inserted, invoice_id);
                     }
                     Err(e) => error!("Error while adding invoice: {:?}", e),
                 }
