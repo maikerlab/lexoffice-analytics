@@ -1,7 +1,6 @@
 pub mod models;
 
 use self::models::{DbInvoice, DbLineItem, DbProduct, DbVoucher, DbAddress};
-use log::info;
 use sqlx::{
     postgres::PgPoolOptions,
     Error, PgPool, types::Uuid,
@@ -20,16 +19,6 @@ impl LexofficeDb {
             .expect("Error connecting to database");
 
         Self { db_pool }
-    }
-
-    pub async fn show_info(&self) {
-        let all_vouchers = self.get_all_vouchers().await.unwrap_or(vec![]);
-        let invoices = self.get_all_invoices().await.unwrap_or(vec![]);
-    
-        info!("----- DATABASE INFO -----");
-        info!("  - Vouchers: {}", all_vouchers.len());
-        info!("  - Invoices: {}", invoices.len());
-        info!("-------------------------");
     }
 
     pub async fn migrate(&self) -> Result<(), Error> {
@@ -81,7 +70,7 @@ r#"
             .await
     }
 
-    pub async fn insert_voucher(&self, voucher: DbVoucher) -> Result<String, Error> {
+    pub async fn add_voucher(&self, voucher: DbVoucher) -> Result<String, Error> {
         let rec = sqlx::query!(
             r#"
     INSERT INTO voucherlist ( 
@@ -113,7 +102,7 @@ r#"
         Ok(rec.id)
     }
 
-    pub async fn insert_product(&self, product: DbProduct) -> Result<String, Error> {
+    pub async fn add_product(&self, product: DbProduct) -> Result<String, Error> {
         let rec = sqlx::query!(
             r#"
     INSERT INTO products ( id, type, name, description )
@@ -149,7 +138,7 @@ SELECT EXISTS(SELECT 1 FROM products WHERE id=$1)
         res
     }
 
-    pub async fn insert_lineitem(
+    pub async fn add_lineitem(
         &self,
         mut item: DbLineItem,
         product_id: String,
@@ -221,7 +210,7 @@ SELECT EXISTS(SELECT 1 FROM invoices WHERE id=$1)
         res
     }
 
-    pub async fn insert_invoice(&self, invoice: DbInvoice) -> Result<String, Error> {
+    pub async fn add_invoice(&self, invoice: DbInvoice) -> Result<String, Error> {
         let rec = sqlx::query!(
         r#"
 INSERT INTO invoices ( 
@@ -249,7 +238,7 @@ RETURNING id
         Ok(rec.id)
     }
 
-    pub async fn get_address_by_id_or_collective(&self, address: &DbAddress) -> Option<DbAddress> {
+    pub async fn address_exists_by_id_or_collective(&self, address: &DbAddress) -> bool {
         if address.contact_id != "" {
             let result = sqlx::query_as!(
                 DbAddress,
@@ -261,7 +250,7 @@ RETURNING id
             )
             .fetch_one(&self.db_pool)
             .await;
-            result.ok()
+            result.is_ok()
         } else {
             let result = sqlx::query_as!(
                 DbAddress,
@@ -281,17 +270,12 @@ RETURNING id
             .fetch_one(&self.db_pool)
             .await;
     
-            result.ok()
+            result.is_ok()
         }
 
     }
 
-    pub async fn insert_address(&self, mut address: DbAddress) -> Result<String, Error> {
-        let contact = self.get_address_by_id_or_collective(&address).await;
-        if contact.is_some() {
-            return Ok(contact.unwrap().contact_id);
-        }
-        
+    pub async fn add_address(&self, mut address: DbAddress) -> Result<DbAddress, Error> {        
         let address_type: String;
         if address.contact_id == "" {
             // Does not exist and no ID -> collective contact -> generate new ID
@@ -302,11 +286,12 @@ RETURNING id
             address_type = "customer".to_string();
         }
 
-        let rec = sqlx::query!(
+        let rec = sqlx::query_as!(
+            DbAddress,
             r#"
         INSERT INTO addresses ( contact_id, type, name, supplement, street, city, zip, country_code )
         VALUES ( $1, $2, $3, $4, $5, $6, $7, $8 )
-        RETURNING contact_id
+        RETURNING contact_id, name, supplement, street, city, zip, country_code
             "#,
             address.contact_id,
             address_type,
@@ -320,7 +305,7 @@ RETURNING id
         .fetch_one(&self.db_pool)
         .await?;
 
-        Ok(rec.contact_id)
+        Ok(rec)
     }
 
 }
@@ -350,7 +335,7 @@ mod tests {
             zip: Some(String::from("12345")), 
             country_code: String::from("DE"), 
         };
-        assert_eq!(db.insert_address(address).await.unwrap(), address_id);
+        assert_eq!(db.add_address(address).await.unwrap(), address_id);
     
         let invoice_id = Uuid::new_v4().to_string();
         let date_time = NaiveDateTime::new(
@@ -378,7 +363,7 @@ mod tests {
             total_discount_percentage: 4.0,
         };
 
-        let result = db.insert_invoice(invoice).await;
+        let result = db.add_invoice(invoice).await;
         assert_eq!(invoice_id, result.unwrap());
     }
 }

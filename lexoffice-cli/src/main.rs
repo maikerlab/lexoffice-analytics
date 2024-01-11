@@ -11,6 +11,16 @@ use std::env;
 
 use crate::{db::LexofficeDb, sync::*};
 
+async fn show_info(db: &LexofficeDb) {
+    let all_vouchers = db.get_all_vouchers().await.unwrap_or(vec![]);
+    let invoices = db.get_all_invoices().await.unwrap_or(vec![]);
+
+    info!("----- DATABASE INFO -----");
+    info!("  - Vouchers: {}", all_vouchers.len());
+    info!("  - Invoices: {}", invoices.len());
+    info!("-------------------------");
+}
+
 #[tokio::main]
 async fn main() {
     dotenv().ok();
@@ -91,7 +101,7 @@ async fn main() {
                 .to_string();
             let voucher_types = [types_arg.clone()].to_vec();
             info!("Showing vouchers: {:?}\n", voucher_types);
-            app.db.show_info().await;
+            show_info(&app.db).await;
         }
         _ => unreachable!("Cannot parse subcommand"),
     };

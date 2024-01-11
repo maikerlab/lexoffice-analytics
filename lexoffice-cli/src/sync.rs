@@ -1,6 +1,9 @@
 use log::*;
 use openapi::models::*;
-use sqlx::types::chrono::{DateTime, NaiveDateTime};
+use sqlx::{
+    types::chrono::{DateTime, NaiveDateTime},
+    Error,
+};
 
 use crate::{
     db::{models::*, LexofficeDb},
@@ -177,13 +180,13 @@ pub async fn sync_lexoffice(app: &App, types: Vec<String>) {
     }
 
     // For each voucher type to sync - get from endpoint and save to DB
-    for t in types {
-        let vouchers_by_type = app.db.get_vouchers_by_type(t).await;
+    for voucher_type in types {
+        let vouchers_by_type = app.db.get_vouchers_by_type(voucher_type).await;
         match vouchers_by_type {
             Ok(vouchers) => {
                 for v in vouchers {
                     if v.voucher_type == "invoice" {
-                        sync_invoice(app, v.id).await;
+                        let _ = sync_invoice(app, v.id.clone()).await;
                     } else {
                         warn!(
                             "Sync. of voucher type {} currently not supported",
@@ -195,15 +198,6 @@ pub async fn sync_lexoffice(app: &App, types: Vec<String>) {
             Err(_) => {}
         }
     }
-
-    let invoices = app
-        .db
-        .get_vouchers_by_type("invoice".to_string())
-        .await
-        .unwrap_or(vec![]);
-    for voucher in invoices {
-        sync_invoice(app, voucher.id).await;
-    }
 }
 
 pub async fn sync_vouchers(app: &App, vouchers: Vec<VoucherlistVoucher>) {
@@ -211,7 +205,7 @@ pub async fn sync_vouchers(app: &App, vouchers: Vec<VoucherlistVoucher>) {
     for voucher in &vouchers {
         if !app.db.voucher_exists(voucher.id.to_string()).await {
             let db_voucher = DbVoucher::from(voucher.to_owned());
-            match app.db.insert_voucher(db_voucher).await {
+            match app.db.add_voucher(db_voucher).await {
                 Ok(_) => {
                     inserted += 1;
                     info!("Added new voucher: {}", voucher.voucher_number);
@@ -224,62 +218,107 @@ pub async fn sync_vouchers(app: &App, vouchers: Vec<VoucherlistVoucher>) {
     info!("Synced {} vouchers, inserted: {}", vouchers.len(), inserted);
 }
 
-pub async fn sync_invoice(app: &App, invoice_id: String) {
-    if !app.db.invoice_exists(invoice_id.clone()).await {
-        match app.api.get_invoice(invoice_id.clone()).await {
-            Ok(ref invoice) => {
-                // Insert address if not existing
-                let db_address = DbAddress::from((*invoice.address).clone());
-                match app.db.insert_address(db_address).await {
-                    Ok(address_id) => info!("Added new address: {}", address_id),
-                    Err(e) => error!("Error while adding address: {:?}", e),
-                }
-
-                // Insert invoice
-                let db_invoice = DbInvoice::from(invoice.to_owned());
-                match app.db.insert_invoice(db_invoice).await {
-                    Ok(_) => {
-                        info!("Added new invoice: {}", invoice.voucher_number);
-                        // Insert line items
-                        let mut li_inserted = 0;
-                        for item in &invoice.line_items {
-                            // Currently only items with a valid ID are inserted
-                            if item.id.is_some() && !item.id.unwrap().is_nil() {
-                                if !app.db.product_exists(item.id.unwrap().to_string()).await {
-                                    let db_product = DbProduct::from(item.to_owned());
-                                    match app.db.insert_product(db_product).await {
-                                        Ok(product_id) => {
-                                            info!("Added new product: {}", product_id)
-                                        }
-                                        Err(e) => error!("Error while adding product: {:?}", e),
-                                    }
-                                }
-                                let db_lineitem = DbLineItem::from(item.to_owned());
-                                match app
-                                    .db
-                                    .insert_lineitem(
-                                        db_lineitem,
-                                        item.id.unwrap().to_string(),
-                                        invoice.id.to_string(),
-                                    )
-                                    .await
-                                {
-                                    Ok(_) => li_inserted += 1,
-                                    Err(e) => {
-                                        error!(
-                                            "Error while adding line item: {:?} - {:?}",
-                                            item.id, e
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                        info!("Added {} line items of invoice {}", li_inserted, invoice_id);
-                    }
-                    Err(e) => error!("Error while adding invoice: {:?}", e),
-                }
+async fn add_address_if_not_existing(
+    db: &LexofficeDb,
+    address: &VoucherAddress,
+) -> Option<DbAddress> {
+    let db_address = DbAddress::from((*address).clone());
+    if !db.address_exists_by_id_or_collective(&db_address).await {
+        let inserted = db.add_address(db_address).await;
+        match inserted {
+            Ok(address) => {
+                info!(
+                    "Added new address: {}, {}, {} {}",
+                    address.name,
+                    address.street.clone().unwrap_or("".to_string()),
+                    address.zip.clone().unwrap_or("".to_string()),
+                    address.city.clone().unwrap_or("".to_string())
+                );
+                return Some(address);
             }
-            Err(e) => error!("Error while fetching invoice: {:?}", e),
+            Err(e) => {
+                error!("Error while adding address: {:?}", e);
+            }
         }
     }
+    return None;
+}
+
+async fn add_line_items(
+    db: &LexofficeDb,
+    invoice_id: String,
+    line_items: &Vec<LineItem>,
+) -> Result<u64, Error> {
+    let mut li_inserted = 0;
+    for item in line_items {
+        // Currently only items with a valid ID are inserted
+        if item.id.is_some() && !item.id.unwrap().is_nil() {
+            if !db.product_exists(item.id.unwrap().to_string()).await {
+                let db_product = DbProduct::from(item.to_owned());
+                match db.add_product(db_product).await {
+                    Ok(_) => {
+                        let i = item.clone();
+                        info!(
+                            "Added new product: {}   {}",
+                            i.name,
+                            i.description.unwrap_or("".to_string())
+                        );
+                    }
+                    Err(e) => error!("Error while adding product: {:?}", e),
+                }
+            }
+            let db_lineitem = DbLineItem::from(item.to_owned());
+            match db
+                .add_lineitem(
+                    db_lineitem,
+                    item.id.unwrap().to_string(),
+                    invoice_id.clone(),
+                )
+                .await
+            {
+                Ok(_) => li_inserted += 1,
+                Err(e) => {
+                    error!("Error while adding line item: {:?} - {:?}", item.id, e)
+                }
+            }
+        }
+    }
+    Ok(li_inserted)
+}
+
+pub async fn sync_invoice(app: &App, invoice_id: String) -> Result<(), Error> {
+    // If invoice already exists, skip sync!
+    if app.db.invoice_exists(invoice_id.clone()).await {
+        return Ok(());
+    }
+
+    // Get invoice from API and insert into DB
+    match app.api.get_invoice(invoice_id.clone()).await {
+        Ok(ref invoice) => {
+            // Insert address
+            add_address_if_not_existing(&app.db, &invoice.address).await;
+            // ... then invoice
+            let db_invoice = DbInvoice::from(invoice.to_owned());
+            match app.db.add_invoice(db_invoice).await {
+                Ok(_) => {
+                    info!("Added new invoice: {}", invoice.voucher_number);
+                    // ... then line items
+                    match add_line_items(&app.db, invoice.id.to_string(), &invoice.line_items).await
+                    {
+                        Ok(n_inserted) => {
+                            info!(
+                                "Added {} line items of invoice {}",
+                                n_inserted, invoice.voucher_number
+                            );
+                        }
+                        Err(e) => error!("Error while adding line items: {:?}", e),
+                    }
+                }
+                Err(e) => error!("Error while adding invoice: {:?}", e),
+            }
+        }
+        Err(e) => error!("Error while fetching invoice: {:?}", e),
+    }
+
+    Ok(())
 }
