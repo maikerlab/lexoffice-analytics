@@ -50,7 +50,7 @@ async fn main() {
         .get_matches();
 
     // Connect + migrate database
-    let db = LexofficeDb::new(db_url).await;
+    let db = LexofficeDb::connect(db_url).await;
     db.migrate().await.expect("Error while migrating database");
 
     // Create the lexoffice API using the API Key

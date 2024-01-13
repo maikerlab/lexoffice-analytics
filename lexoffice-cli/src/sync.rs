@@ -67,7 +67,7 @@ impl From<VoucherlistVoucher> for DbVoucher {
             },
             contact_name: v.contact_name,
             total_amount: v.total_amount as f64,
-            open_amount: v.open_amount as f64,
+            open_amount: v.open_amount.unwrap_or(0.0) as f64,
             currency: v.currency.enum_to_string(),
             archived: match v.archived {
                 true => 1,
@@ -154,14 +154,24 @@ pub async fn sync_lexoffice(app: &App, types: Vec<String>) {
     let mut current_page = 1;
     let mut fetched_vouchers = 0;
     let page_size = 250;
+    let available_vouchers = app.db.get_all_vouchers().await.unwrap_or(vec![]).len() as i32;
+    info!("Already available vouchers: {}", available_vouchers);
     loop {
         let res = app
             .api
             .get_voucherlist(types.join(","), current_page, page_size)
             .await;
+        //.expect("Error while fetching voucherlist");
         match res {
-            Err(e) => error!("error getting voucherlist: {}", e),
+            Err(e) => {
+                error!("error getting voucherlist: {}", e);
+                current_page += 1;
+            }
             Ok(voucher_list) => {
+                if available_vouchers >= voucher_list.total_elements {
+                    info!("Voucherlist is up-to-date");
+                    break;
+                }
                 fetched_vouchers += voucher_list.number_of_elements;
                 info!(
                     "Fetched {} of {} vouchers from Voucherlist",
@@ -173,14 +183,16 @@ pub async fn sync_lexoffice(app: &App, types: Vec<String>) {
                 if voucher_list.last {
                     break;
                 }
-                break; // TODO: just for during development - remove this!
+                //break; // TODO: just for during development - remove this!
                 current_page += 1;
             }
         }
     }
+    info!("Finished syncing Voucherlist!");
 
     // For each voucher type to sync - get from endpoint and save to DB
     for voucher_type in types {
+        info!("Start syncing {} ...", voucher_type.clone());
         let vouchers_by_type = app.db.get_vouchers_by_type(voucher_type).await;
         match vouchers_by_type {
             Ok(vouchers) => {
@@ -301,14 +313,13 @@ pub async fn sync_invoice(app: &App, invoice_id: String) -> Result<(), Error> {
             let db_invoice = DbInvoice::from(invoice.to_owned());
             match app.db.add_invoice(db_invoice).await {
                 Ok(_) => {
-                    info!("Added new invoice: {}", invoice.voucher_number);
                     // ... then line items
                     match add_line_items(&app.db, invoice.id.to_string(), &invoice.line_items).await
                     {
                         Ok(n_inserted) => {
                             info!(
-                                "Added {} line items of invoice {}",
-                                n_inserted, invoice.voucher_number
+                                "Added new invoice ({}) with {} line items",
+                                invoice.voucher_number, n_inserted
                             );
                         }
                         Err(e) => error!("Error while adding line items: {:?}", e),

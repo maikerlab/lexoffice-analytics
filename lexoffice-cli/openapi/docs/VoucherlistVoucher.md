@@ -15,7 +15,7 @@ Name | Type | Description | Notes
 **contact_id** | Option<[**uuid::Uuid**](uuid::Uuid.md)> |  | [optional]
 **contact_name** | **String** |  | 
 **total_amount** | **f32** |  | 
-**open_amount** | **f32** |  | 
+**open_amount** | Option<**f32**> |  | [optional]
 **currency** | **String** |  | 
 **archived** | **bool** |  | 
 

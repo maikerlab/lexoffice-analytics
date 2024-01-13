@@ -7,22 +7,22 @@ use sqlx::{
 };
 
 pub struct LexofficeDb {
-    db_pool: PgPool,
+    pool: PgPool,
 }
 
 impl LexofficeDb {
-    pub async fn new(db_url: String) -> Self {
+    pub async fn connect(db_url: String) -> Self {
         let db_pool = PgPoolOptions::new()
             .max_connections(5)
             .connect(db_url.as_str())
             .await
             .expect("Error connecting to database");
 
-        Self { db_pool }
+        Self { pool: db_pool }
     }
 
     pub async fn migrate(&self) -> Result<(), Error> {
-        let _ = sqlx::migrate!().run(&self.db_pool).await;
+        let _ = sqlx::migrate!().run(&self.pool).await;
         Ok(())
     }
 
@@ -35,7 +35,7 @@ r#"
     FROM voucherlist
 "#
     )
-    .fetch_all(&self.db_pool).await
+    .fetch_all(&self.pool).await
     }
 
     pub async fn get_voucher_by_id(&self, voucher_id: String) -> Result<DbVoucher, Error> {
@@ -44,7 +44,7 @@ r#"
             r#"select * FROM voucherlist where id = $1"#,
             voucher_id
         )
-        .fetch_one(&self.db_pool)
+        .fetch_one(&self.pool)
         .await
     }
 
@@ -57,7 +57,7 @@ r#"
             r#"SELECT * FROM voucherlist where voucher_type = $1"#,
             voucher_type
         )
-        .fetch_all(&self.db_pool)
+        .fetch_all(&self.pool)
         .await
     }
 
@@ -66,7 +66,7 @@ r#"
     r#"SELECT id, organization_id, created_date, updated_date, version, language, archived, voucher_status, voucher_number, voucher_date, due_date, address_id, currency, total_net_amount, total_gross_amount, total_tax_amount, total_discount_absolute, total_discount_percentage
         FROM invoices
     "#)
-            .fetch_all(&self.db_pool)
+            .fetch_all(&self.pool)
             .await
     }
 
@@ -96,7 +96,7 @@ r#"
             voucher.currency,
             voucher.archived == 1
         )
-        .fetch_one(&self.db_pool)
+        .fetch_one(&self.pool)
         .await?;
 
         Ok(rec.id)
@@ -114,7 +114,7 @@ r#"
             product.name,
             product.description
         )
-        .fetch_one(&self.db_pool)
+        .fetch_one(&self.pool)
         .await?;
 
         Ok(rec.id)
@@ -127,7 +127,7 @@ SELECT EXISTS(SELECT 1 FROM products WHERE id=$1)
         "#,
             product_id
         )
-        .fetch_one(&self.db_pool)
+        .fetch_one(&self.pool)
         .await;
 
         let res = match result {
@@ -167,7 +167,7 @@ SELECT EXISTS(SELECT 1 FROM products WHERE id=$1)
             item.discount_percentage,
             item.line_item_amount
         )
-        .fetch_one(&self.db_pool)
+        .fetch_one(&self.pool)
         .await?;
 
         Ok(rec.id)
@@ -180,7 +180,7 @@ SELECT EXISTS(SELECT 1 FROM voucherlist WHERE id=$1)
         "#,
             voucher_id
         )
-        .fetch_one(&self.db_pool)
+        .fetch_one(&self.pool)
         .await;
 
         //println!("voucher_exists: {:?}", rec.exists.unwrap_or(false));
@@ -199,7 +199,7 @@ SELECT EXISTS(SELECT 1 FROM invoices WHERE id=$1)
         "#,
             invoice_id
         )
-        .fetch_one(&self.db_pool)
+        .fetch_one(&self.pool)
         .await;
 
         let res = match result {
@@ -232,7 +232,7 @@ RETURNING id
         invoice.due_date,
         invoice.address_id
     )
-    .fetch_one(&self.db_pool)
+    .fetch_one(&self.pool)
     .await?;
 
         Ok(rec.id)
@@ -248,7 +248,7 @@ RETURNING id
             "#,
                 address.contact_id
             )
-            .fetch_one(&self.db_pool)
+            .fetch_one(&self.pool)
             .await;
             result.is_ok()
         } else {
@@ -267,7 +267,7 @@ RETURNING id
                 address.zip,
                 address.country_code
             )
-            .fetch_one(&self.db_pool)
+            .fetch_one(&self.pool)
             .await;
     
             result.is_ok()
@@ -302,7 +302,7 @@ RETURNING id
             address.zip,
             address.country_code
         )
-        .fetch_one(&self.db_pool)
+        .fetch_one(&self.pool)
         .await?;
 
         Ok(rec)
@@ -321,7 +321,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_insert_invoice() {
-        let db = LexofficeDb::new(
+        let db = LexofficeDb::connect(
             "postgres://bunu:bunu@localhost:5434/bunu".to_string(),
         ).await;
 

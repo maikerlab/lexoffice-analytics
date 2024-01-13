@@ -446,7 +446,6 @@ components:
         - updatedDate
         - contactName
         - totalAmount
-        - openAmount
         - currency
         - archived
       type: object
