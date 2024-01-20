@@ -1,4 +1,7 @@
-use sqlx::{self, types::chrono::NaiveDateTime};
+use sqlx::{
+    self,
+    types::{chrono::NaiveDateTime, BigDecimal},
+};
 
 #[derive(Debug, sqlx::FromRow)]
 pub struct DbAddress {
@@ -26,11 +29,11 @@ pub struct DbInvoice {
     pub due_date: Option<NaiveDateTime>,
     pub address_id: Option<String>,
     pub currency: String,
-    pub total_net_amount: f64,
-    pub total_gross_amount: f64,
-    pub total_tax_amount: f64,
-    pub total_discount_absolute: f64,
-    pub total_discount_percentage: f64,
+    pub total_net_amount: BigDecimal,
+    pub total_gross_amount: BigDecimal,
+    pub total_tax_amount: BigDecimal,
+    pub total_discount_absolute: BigDecimal,
+    pub total_discount_percentage: BigDecimal,
 }
 
 #[derive(Debug, sqlx::FromRow)]
@@ -38,14 +41,14 @@ pub struct DbLineItem {
     pub id: i32,
     pub product_id: String,
     pub voucher_id: String,
-    pub quantity: f64,
+    pub quantity: BigDecimal,
     pub unit_name: String,
     pub currency: String,
-    pub net_amount: f64,
-    pub gross_amount: f64,
-    pub tax_rate_percentage: Option<f64>,
-    pub discount_percentage: Option<f64>,
-    pub line_item_amount: Option<f64>,
+    pub net_amount: BigDecimal,
+    pub gross_amount: BigDecimal,
+    pub tax_rate_percentage: Option<BigDecimal>,
+    pub discount_percentage: Option<BigDecimal>,
+    pub line_item_amount: Option<BigDecimal>,
 }
 
 #[derive(Debug, sqlx::FromRow)]
@@ -68,8 +71,8 @@ pub struct DbVoucher {
     pub due_date: Option<NaiveDateTime>,
     pub contact_id: Option<String>,
     pub contact_name: String,
-    pub total_amount: f64,
-    pub open_amount: f64,
+    pub total_amount: BigDecimal,
+    pub open_amount: BigDecimal,
     pub currency: String,
     pub archived: i8,
 }

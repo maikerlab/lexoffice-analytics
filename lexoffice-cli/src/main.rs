@@ -80,8 +80,12 @@ async fn main() {
                         "deliverynote".to_string(),
                     ]
                     .to_vec();
-                    info!("Syncing all vouchers...");
+                    info!("Syncing all voucher types...");
                     sync_lexoffice(&app, voucher_types).await;
+                }
+                "voucherlist" => {
+                    info!("Syncing voucherlist...");
+                    sync_voucherlist(&app).await;
                 }
                 "invoices" => {
                     let voucher_types = ["invoice".to_string()].to_vec();

@@ -63,7 +63,9 @@ r#"
 
     pub async fn get_all_invoices(&self) -> Result<Vec<DbInvoice>, Error> {
         sqlx::query_as!(DbInvoice, 
-    r#"SELECT id, organization_id, created_date, updated_date, version, language, archived, voucher_status, voucher_number, voucher_date, due_date, address_id, currency, total_net_amount, total_gross_amount, total_tax_amount, total_discount_absolute, total_discount_percentage
+    r#"SELECT id, organization_id, created_date, updated_date, version, language, archived, voucher_status, voucher_number, 
+    voucher_date, due_date, address_id, currency, total_net_amount, total_gross_amount, total_tax_amount, 
+    total_discount_absolute, total_discount_percentage
         FROM invoices
     "#)
             .fetch_all(&self.pool)
@@ -215,8 +217,9 @@ SELECT EXISTS(SELECT 1 FROM invoices WHERE id=$1)
         r#"
 INSERT INTO invoices ( 
     id, organization_id, created_date, updated_date, version, language, archived, voucher_status, voucher_number, 
-    voucher_date, due_date, address_id )
-VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12 )
+    voucher_date, due_date, address_id, currency, 
+    total_net_amount, total_gross_amount, total_tax_amount, total_discount_absolute, total_discount_percentage )
+VALUES ( $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18 )
 RETURNING id
         "#,
         invoice.id,
@@ -230,7 +233,13 @@ RETURNING id
         invoice.voucher_number,
         invoice.voucher_date,
         invoice.due_date,
-        invoice.address_id
+        invoice.address_id,
+        invoice.currency,
+        invoice.total_net_amount,
+        invoice.total_gross_amount,
+        invoice.total_tax_amount,
+        invoice.total_discount_absolute,
+        invoice.total_discount_percentage
     )
     .fetch_one(&self.pool)
     .await?;
@@ -313,7 +322,6 @@ RETURNING id
 #[cfg(test)]
 mod tests {
     use super::*;
-    use futures::executor::block_on;
     use sqlx::types::{
         chrono::{NaiveDate, NaiveTime, NaiveDateTime},
         Uuid,

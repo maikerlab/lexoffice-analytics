@@ -1,7 +1,11 @@
 use log::*;
+use num_traits::cast::FromPrimitive;
 use openapi::models::*;
 use sqlx::{
-    types::chrono::{DateTime, NaiveDateTime},
+    types::{
+        chrono::{DateTime, NaiveDateTime},
+        BigDecimal,
+    },
     Error,
 };
 
@@ -22,7 +26,8 @@ fn parse_datetime(datetime_str: String) -> Option<NaiveDateTime> {
 impl From<Invoice> for DbInvoice {
     fn from(invoice: Invoice) -> Self {
         //let _address = invoice.address.map(|a| );
-        DbInvoice {
+        warn!("Invoice::from: {:?}", invoice);
+        let res = DbInvoice {
             id: invoice.id.to_string(),
             organization_id: invoice.organization_id.map(|val| val.to_string()),
             created_date: parse_datetime(invoice.created_date).unwrap(),
@@ -39,14 +44,21 @@ impl From<Invoice> for DbInvoice {
             due_date: parse_datetime(invoice.due_date),
             address_id: invoice.address.contact_id.map(|id| id.to_string()),
             currency: invoice.total_price.currency.enum_to_string(),
-            total_net_amount: invoice.total_price.total_net_amount as f64,
-            total_gross_amount: invoice.total_price.total_gross_amount as f64,
-            total_tax_amount: invoice.total_price.total_tax_amount as f64,
-            total_discount_absolute: invoice.total_price.total_discount_absolute.unwrap_or(0.0)
-                as f64,
-            total_discount_percentage: invoice.total_price.total_discount_percentage.unwrap_or(0.0)
-                as f64,
-        }
+            total_net_amount: BigDecimal::from_f32(invoice.total_price.total_net_amount).unwrap(),
+            total_gross_amount: BigDecimal::from_f32(invoice.total_price.total_gross_amount)
+                .unwrap(),
+            total_tax_amount: BigDecimal::from_f32(invoice.total_price.total_tax_amount).unwrap(),
+            total_discount_absolute: BigDecimal::from_f32(
+                invoice.total_price.total_discount_absolute.unwrap_or(0.0),
+            )
+            .unwrap(),
+            total_discount_percentage: BigDecimal::from_f32(
+                invoice.total_price.total_discount_percentage.unwrap_or(0.0),
+            )
+            .unwrap(),
+        };
+        warn!("RESULT Invoice::from-> {:?}", res);
+        res
     }
 }
 
@@ -66,8 +78,8 @@ impl From<VoucherlistVoucher> for DbVoucher {
                 None => None,
             },
             contact_name: v.contact_name,
-            total_amount: v.total_amount.unwrap_or(0.0) as f64,
-            open_amount: v.open_amount.unwrap_or(0.0) as f64,
+            total_amount: BigDecimal::from_f32(v.total_amount.unwrap_or(0.0)).unwrap(),
+            open_amount: BigDecimal::from_f32(v.open_amount.unwrap_or(0.0)).unwrap(),
             currency: v.currency.enum_to_string(),
             archived: match v.archived {
                 true => 1,
@@ -81,34 +93,35 @@ impl From<LineItem> for DbLineItem {
     fn from(item: LineItem) -> Self {
         Self {
             id: 1,
-            product_id: item
-                .id
-                .map(|id| id.to_string())
-                .unwrap_or_else(|| "".to_string()),
+            product_id: item.id.map(|id| id.to_string()).unwrap_or("".to_string()),
             voucher_id: "".to_string(),
-            quantity: item.quantity as f64,
+            quantity: BigDecimal::from_f32(item.quantity).unwrap(),
             unit_name: item.unit_name.unwrap_or("".to_string()),
             currency: item
                 .unit_price
                 .clone()
                 .map(|up| up.currency.enum_to_string())
-                .unwrap_or_else(|| "".to_string()),
+                .unwrap_or("".to_string()),
             net_amount: item
                 .unit_price
                 .clone()
-                .map(|up| up.net_amount as f64)
-                .unwrap_or_else(|| 0.0),
+                .map(|up| BigDecimal::from_f32(up.net_amount).unwrap())
+                .unwrap_or(BigDecimal::from(0)),
             gross_amount: item
                 .unit_price
                 .clone()
-                .map(|up: Box<UnitPrice>| up.gross_amount as f64)
-                .unwrap_or_else(|| 0.0),
+                .map(|up: Box<UnitPrice>| BigDecimal::from_f32(up.gross_amount).unwrap())
+                .unwrap_or(BigDecimal::from(0)),
             tax_rate_percentage: item
                 .unit_price
                 .clone()
-                .map(|up| up.tax_rate_percentage as f64),
-            discount_percentage: item.discount_percentage.map(|p| p as f64),
-            line_item_amount: item.line_item_amount.map(|a| a as f64),
+                .map(|up| BigDecimal::from_f32(up.tax_rate_percentage).unwrap()),
+            discount_percentage: item
+                .discount_percentage
+                .map(|p| BigDecimal::from_f32(p).unwrap()),
+            line_item_amount: item
+                .line_item_amount
+                .map(|a| BigDecimal::from_f32(a).unwrap()),
         }
     }
 }
@@ -116,10 +129,7 @@ impl From<LineItem> for DbLineItem {
 impl From<LineItem> for DbProduct {
     fn from(item: LineItem) -> Self {
         Self {
-            id: item
-                .id
-                .map(|id| id.to_string())
-                .unwrap_or_else(|| "".to_string()),
+            id: item.id.map(|id| id.to_string()).unwrap_or("".to_string()),
             product_type: item.r#type.enum_to_string(),
             name: item.name,
             description: item.description,
@@ -150,12 +160,36 @@ pub struct App {
 }
 
 pub async fn sync_lexoffice(app: &App, types: Vec<String>) {
-    // First get all vouchers from voucherlist endpoint and save into DB
+    // For each voucher type to sync - get from endpoint and save to DB
+    for voucher_type in types {
+        info!("Start syncing {} ...", voucher_type.clone());
+        let vouchers_by_type = app.db.get_vouchers_by_type(voucher_type).await;
+        match vouchers_by_type {
+            Ok(vouchers) => {
+                for v in vouchers {
+                    if v.voucher_type == "invoice" {
+                        let _ = sync_invoice(app, v.id.clone()).await;
+                    } else {
+                        warn!(
+                            "Sync. of voucher type {} currently not supported",
+                            v.voucher_type
+                        );
+                    }
+                }
+            }
+            Err(_) => {}
+        }
+    }
+}
+
+pub async fn sync_voucherlist(app: &App) {
+    // Get all vouchers from voucherlist endpoint and save into DB
+    let available_vouchers = app.db.get_all_vouchers().await.unwrap_or(vec![]).len() as i32;
+    info!("Already available vouchers: {}", available_vouchers);
+
     let mut current_page = 1;
     let mut fetched_vouchers = 0;
     let page_size = 250;
-    let available_vouchers = app.db.get_all_vouchers().await.unwrap_or(vec![]).len() as i32;
-    info!("Already available vouchers: {}", available_vouchers);
     loop {
         let res = app
             .api
@@ -188,28 +222,8 @@ pub async fn sync_lexoffice(app: &App, types: Vec<String>) {
             }
         }
     }
-    info!("Finished syncing Voucherlist!");
 
-    // For each voucher type to sync - get from endpoint and save to DB
-    for voucher_type in types {
-        info!("Start syncing {} ...", voucher_type.clone());
-        let vouchers_by_type = app.db.get_vouchers_by_type(voucher_type).await;
-        match vouchers_by_type {
-            Ok(vouchers) => {
-                for v in vouchers {
-                    if v.voucher_type == "invoice" {
-                        let _ = sync_invoice(app, v.id.clone()).await;
-                    } else {
-                        warn!(
-                            "Sync. of voucher type {} currently not supported",
-                            v.voucher_type
-                        );
-                    }
-                }
-            }
-            Err(_) => {}
-        }
-    }
+    info!("Finished syncing Voucherlist!");
 }
 
 pub async fn sync_vouchers(app: &App, vouchers: Vec<VoucherlistVoucher>) {
