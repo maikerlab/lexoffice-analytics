@@ -35,8 +35,8 @@ pub struct VoucherlistVoucher {
     pub contact_id: Option<Option<uuid::Uuid>>,
     #[serde(rename = "contactName")]
     pub contact_name: String,
-    #[serde(rename = "totalAmount")]
-    pub total_amount: f32,
+    #[serde(rename = "totalAmount", skip_serializing_if = "Option::is_none")]
+    pub total_amount: Option<f32>,
     #[serde(rename = "openAmount", skip_serializing_if = "Option::is_none")]
     pub open_amount: Option<f32>,
     #[serde(rename = "currency")]
@@ -46,7 +46,7 @@ pub struct VoucherlistVoucher {
 }
 
 impl VoucherlistVoucher {
-    pub fn new(id: uuid::Uuid, voucher_type: VoucherType, voucher_status: VoucherStatus, voucher_number: String, voucher_date: String, created_date: String, updated_date: String, contact_name: String, total_amount: f32, currency: Currency, archived: bool) -> VoucherlistVoucher {
+    pub fn new(id: uuid::Uuid, voucher_type: VoucherType, voucher_status: VoucherStatus, voucher_number: String, voucher_date: String, created_date: String, updated_date: String, contact_name: String, currency: Currency, archived: bool) -> VoucherlistVoucher {
         VoucherlistVoucher {
             id,
             voucher_type,
@@ -58,7 +58,7 @@ impl VoucherlistVoucher {
             due_date: None,
             contact_id: None,
             contact_name,
-            total_amount,
+            total_amount: None,
             open_amount: None,
             currency,
             archived,

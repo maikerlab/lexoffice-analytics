@@ -66,7 +66,7 @@ impl From<VoucherlistVoucher> for DbVoucher {
                 None => None,
             },
             contact_name: v.contact_name,
-            total_amount: v.total_amount as f64,
+            total_amount: v.total_amount.unwrap_or(0.0) as f64,
             open_amount: v.open_amount.unwrap_or(0.0) as f64,
             currency: v.currency.enum_to_string(),
             archived: match v.archived {
@@ -159,7 +159,7 @@ pub async fn sync_lexoffice(app: &App, types: Vec<String>) {
     loop {
         let res = app
             .api
-            .get_voucherlist(types.join(","), current_page, page_size)
+            .get_voucherlist("any".to_string(), current_page, page_size)
             .await;
         //.expect("Error while fetching voucherlist");
         match res {

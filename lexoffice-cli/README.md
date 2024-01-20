@@ -21,8 +21,10 @@ This service (**lexoffice-sync**) uses this library to get data from Lexoffice a
 We can (re)create the client using this command:
 
 ```shell
-openapi-generator-cli generate -i lexoffice-api.yml -g rust -o openapi
+openapi-generator-cli generate -i lexoffice-api.yml -g rust -o openapi --additional-properties=packageVersion=1.0.0
 ```
+
+Config options for --additional-properties: see docs for [Rust Generator](https://openapi-generator.tech/docs/generators/rust/).
 
 ## Database
 

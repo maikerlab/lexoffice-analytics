@@ -14,7 +14,7 @@ Name | Type | Description | Notes
 **due_date** | Option<**String**> |  | [optional]
 **contact_id** | Option<[**uuid::Uuid**](uuid::Uuid.md)> |  | [optional]
 **contact_name** | **String** |  | 
-**total_amount** | **f32** |  | 
+**total_amount** | Option<**f32**> |  | [optional]
 **open_amount** | Option<**f32**> |  | [optional]
 **currency** | **String** |  | 
 **archived** | **bool** |  | 
