@@ -1,3 +1,6 @@
+pub mod db;
+pub mod lexoffice;
+
 use log::*;
 use num_traits::cast::FromPrimitive;
 use openapi::models::*;
@@ -42,15 +45,15 @@ impl From<Invoice> for DbInvoice {
             due_date: parse_datetime(invoice.due_date),
             address_id: invoice.address.contact_id.map(|id| id.to_string()),
             currency: invoice.total_price.currency.enum_to_string(),
-            total_net_amount: BigDecimal::from_f32(invoice.total_price.total_net_amount).unwrap(),
-            total_gross_amount: BigDecimal::from_f32(invoice.total_price.total_gross_amount)
+            total_net_amount: BigDecimal::from_f64(invoice.total_price.total_net_amount).unwrap(),
+            total_gross_amount: BigDecimal::from_f64(invoice.total_price.total_gross_amount)
                 .unwrap(),
-            total_tax_amount: BigDecimal::from_f32(invoice.total_price.total_tax_amount).unwrap(),
-            total_discount_absolute: BigDecimal::from_f32(
+            total_tax_amount: BigDecimal::from_f64(invoice.total_price.total_tax_amount).unwrap(),
+            total_discount_absolute: BigDecimal::from_f64(
                 invoice.total_price.total_discount_absolute.unwrap_or(0.0),
             )
             .unwrap(),
-            total_discount_percentage: BigDecimal::from_f32(
+            total_discount_percentage: BigDecimal::from_f64(
                 invoice.total_price.total_discount_percentage.unwrap_or(0.0),
             )
             .unwrap(),
@@ -74,8 +77,8 @@ impl From<VoucherlistVoucher> for DbVoucher {
                 None => None,
             },
             contact_name: v.contact_name,
-            total_amount: BigDecimal::from_f32(v.total_amount.unwrap_or(0.0)).unwrap(),
-            open_amount: BigDecimal::from_f32(v.open_amount.unwrap_or(0.0)).unwrap(),
+            total_amount: BigDecimal::from_f64(v.total_amount.unwrap_or(0.0)).unwrap(),
+            open_amount: BigDecimal::from_f64(v.open_amount.unwrap_or(0.0)).unwrap(),
             currency: v.currency.enum_to_string(),
             archived: match v.archived {
                 true => 1,
@@ -91,7 +94,7 @@ impl From<LineItem> for DbLineItem {
             id: 1,
             product_id: item.id.map(|id| id.to_string()).unwrap_or("".to_string()),
             voucher_id: "".to_string(),
-            quantity: BigDecimal::from_f32(item.quantity).unwrap(),
+            quantity: BigDecimal::from_f64(item.quantity).unwrap(),
             unit_name: item.unit_name.unwrap_or("".to_string()),
             currency: item
                 .unit_price
@@ -101,23 +104,23 @@ impl From<LineItem> for DbLineItem {
             net_amount: item
                 .unit_price
                 .clone()
-                .map(|up| BigDecimal::from_f32(up.net_amount).unwrap())
+                .map(|up| BigDecimal::from_f64(up.net_amount).unwrap())
                 .unwrap_or(BigDecimal::from(0)),
             gross_amount: item
                 .unit_price
                 .clone()
-                .map(|up: Box<UnitPrice>| BigDecimal::from_f32(up.gross_amount).unwrap())
+                .map(|up: Box<UnitPrice>| BigDecimal::from_f64(up.gross_amount).unwrap())
                 .unwrap_or(BigDecimal::from(0)),
             tax_rate_percentage: item
                 .unit_price
                 .clone()
-                .map(|up| BigDecimal::from_f32(up.tax_rate_percentage).unwrap()),
+                .map(|up| BigDecimal::from_f64(up.tax_rate_percentage).unwrap()),
             discount_percentage: item
                 .discount_percentage
-                .map(|p| BigDecimal::from_f32(p).unwrap()),
+                .map(|p| BigDecimal::from_f64(p).unwrap()),
             line_item_amount: item
                 .line_item_amount
-                .map(|a| BigDecimal::from_f32(a).unwrap()),
+                .map(|a| BigDecimal::from_f64(a).unwrap()),
         }
     }
 }
@@ -342,4 +345,15 @@ pub async fn sync_invoice(app: &App, invoice_id: String) -> Result<(), Error> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn it_works() {
+        let result = add(2, 2);
+        assert_eq!(result, 4);
+    }
 }

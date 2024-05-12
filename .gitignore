@@ -12,3 +12,7 @@ db/data
 # IDE and user-related / dev-tools stuff
 Taskfile.yml
 .vscode/
+.idea/
+
+# binaries
+target/
