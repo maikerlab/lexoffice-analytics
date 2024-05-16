@@ -53,3 +53,13 @@ Then the OpenAPI client can be generated using the `generate` script:
 $ npm install
 $ npm run generate
 ```
+
+## Analytics Use Cases Model
+
+- Product Sales
+  - total
+  - per date (from-to)
+  - per customer
+- Customers
+  - Location
+  - Sales (+ date filter)

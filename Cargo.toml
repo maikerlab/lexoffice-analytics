@@ -2,7 +2,7 @@
 resolver = "2"
 
 members = [
-    "cli",
-    "sync",
-    "openapi"
+    "openapi",
+    "lexoffice-models",
+    "lexoffice-cli"
 ]

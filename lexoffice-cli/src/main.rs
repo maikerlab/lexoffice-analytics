@@ -1,31 +1,23 @@
-mod db;
-mod lexoffice;
 mod sync;
 
+use std::env;
 use clap::{arg, command, Command};
 use dotenvy::dotenv;
-use lexoffice::LexofficeApi;
-use log::*;
+use futures::{StreamExt, TryStreamExt};
+use log::info;
+use mongodb::{Collection, Database};
+use mongodb::bson::doc;
+use mongodb::options::InsertOneOptions;
+use serde::{Deserialize, Serialize};
 use simple_logger::SimpleLogger;
-use std::env;
-
-use crate::{db::LexofficeDb, sync::*};
-
-async fn show_info(db: &LexofficeDb) {
-    let all_vouchers = db.get_all_vouchers().await.unwrap_or(vec![]);
-    let invoices = db.get_all_invoices().await.unwrap_or(vec![]);
-
-    info!("----- DATABASE INFO -----");
-    info!("  - Vouchers: {}", all_vouchers.len());
-    info!("  - Invoices: {}", invoices.len());
-    info!("-------------------------");
-}
+use openapi::apis::configuration::Configuration;
+use openapi::apis::vouchers_api;
+use openapi::models::{Voucher, VoucherList, VoucherlistVoucher};
+use crate::sync::{connect, sync_invoices, test};
 
 #[tokio::main]
 async fn main() {
     dotenv().ok();
-    let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let api_key = env::var("LEXOFFICE_APIKEY").expect("LEXOFFICE_APIKEY must be set");
 
     SimpleLogger::new()
         .with_colors(true)
@@ -49,16 +41,6 @@ async fn main() {
         )
         .get_matches();
 
-    // Connect + migrate database
-    let db = LexofficeDb::connect(db_url).await;
-    db.migrate().await.expect("Error while migrating database");
-
-    // Create the lexoffice API using the API Key
-    let api = LexofficeApi::new(api_key);
-
-    // ... then put together in our app
-    let app = App { db, api };
-
     match matches.subcommand() {
         Some(("sync", sub_matches)) => {
             let types_arg = sub_matches
@@ -67,7 +49,7 @@ async fn main() {
                 .to_string();
             match types_arg.as_str() {
                 "all" => {
-                    let voucher_types = [
+                    sync_vouchers(Vec::from([
                         "salesinvoice".to_string(),
                         "salescreditnote".to_string(),
                         "purchaseinvoice".to_string(),
@@ -78,19 +60,10 @@ async fn main() {
                         "orderconfirmation".to_string(),
                         "quotation".to_string(),
                         "deliverynote".to_string(),
-                    ]
-                    .to_vec();
-                    info!("Syncing all voucher types...");
-                    sync_lexoffice(&app, voucher_types).await;
-                }
-                "voucherlist" => {
-                    info!("Syncing voucherlist...");
-                    sync_voucherlist(&app).await;
+                    ])).await;
                 }
                 "invoices" => {
-                    let voucher_types = ["invoice".to_string()].to_vec();
-                    info!("Syncing invoices...");
-                    sync_lexoffice(&app, voucher_types).await;
+                    sync_vouchers(Vec::from(["invoice".to_string()])).await;
                 }
                 _ => unreachable!(
                     "Unknown or unsupported argument for voucher types: {}",
@@ -103,12 +76,33 @@ async fn main() {
                 .get_one::<String>("VOUCHER_TYPE")
                 .unwrap()
                 .to_string();
-            let voucher_types = [types_arg.clone()].to_vec();
-            info!("Showing vouchers: {:?}\n", voucher_types);
-            show_info(&app.db).await;
+            show_vouchers(Vec::from([types_arg.clone()])).await;
         }
         _ => unreachable!("Cannot parse subcommand"),
     };
+}
 
-    info!("Finished! Exiting...");
+async fn sync_vouchers(voucher_types: Vec<String>) {
+    info!("Syncing vouchers: {:?}\n", voucher_types);
+    let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let api_key = env::var("LEXOFFICE_APIKEY").expect("LEXOFFICE_APIKEY must be set");
+
+    // Get connection string
+    let db_name = "lexoffice";
+
+    // Connect to DB and get handle
+    let db = connect(db_url.as_str(), db_name)
+        .await
+        .expect("Connection failed!");
+
+    let mut api_config = Configuration::default();
+    api_config.bearer_access_token = Some(api_key);
+
+    sync_invoices(&api_config, &db)
+        .await
+        .expect("error syncing invoices");
+}
+
+async fn show_vouchers(voucher_types: Vec<String>) {
+    info!("Showing vouchers: {:?}\n", voucher_types);
 }

@@ -3,15 +3,17 @@ name = "lexoffice-cli"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-openapi = { path = "./openapi" }
-tokio = { version = "1.20.0", features = ["rt-multi-thread", "macros"]}
-futures = "0.3"
-sqlx = { version = "0.7.3", features = [ "runtime-tokio", "tls-rustls", "postgres", "macros", "migrate", "uuid", "chrono", "bigdecimal" ] }
+lexoffice-models = { path = "../lexoffice-models" }
+tokio = {version = "1.32.0", features = ["full"]}
+openapi = { path = "../openapi" }
+serde = "1.0.188"
+futures = "0.3.28"
 dotenvy = "0.15"
-clap = { version = "4.4.14", features = ["cargo"] }
-log = "0.4"
 simple_logger = {version = "4.3.3", features = ["stderr"]}
-num-traits = "0.2.17"
+log = "0.4.20"
+clap = { version = "4.4.14", features = ["cargo"] }
+
+[dependencies.mongodb]
+version = "2.8.2"
+features = ["tokio-runtime"]
