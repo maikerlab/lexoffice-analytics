@@ -1,7 +1,7 @@
 use std::net::Shutdown::Write;
 use std::time::Duration;
-use futures::TryStreamExt;
-use log::error;
+use futures::{StreamExt, TryStreamExt};
+use log::{error, info};
 use mongodb::{Client, Collection, Database};
 use mongodb::bson::{doc, Document};
 use mongodb::options::{InsertOneOptions, WriteConcern};
@@ -9,12 +9,15 @@ use tokio::time::sleep;
 use openapi::apis::configuration::Configuration;
 use openapi::apis::{Error, vouchers_api};
 use openapi::models::{VoucherList, VoucherlistVoucher};
-use lexoffice_models::{Invoice, Product, Customer, Sale, INVOICES_COLLECTION_NAME};
+use lexoffice_models::{Invoice, Product, Address, LineItem, INVOICES_COLLECTION_NAME};
 use openapi::apis::invoices_api::{invoices_id_get, InvoicesIdGetError};
 
 pub async fn sync_invoices(api_config: &Configuration, db: &Database) -> mongodb::error::Result<()> {
     let invoice_coll: Collection<Invoice> = db
         .collection(INVOICES_COLLECTION_NAME);
+    let doc_count_before = invoice_coll.count_documents(doc! { "voucher_status": "paid" }, None)
+        .await?;
+    println!("Collection contains {} documents", doc_count_before);
 
     let voucher_list = vouchers_api::voucherlist_get(
         api_config,
@@ -38,15 +41,16 @@ pub async fn sync_invoices(api_config: &Configuration, db: &Database) -> mongodb
 
     // TODO: For testing take only a slice
     for mut voucher in &voucher_list.content.to_vec()[..10] {
-        println!("Voucher: {:?}", voucher);
+        info!("Syncing voucher: {}", voucher.id);
         let invoice = invoices_id_get(api_config, voucher.id.to_string().as_str())
             .await;
         match invoice {
             Ok(i) => {
                 let invoice: Invoice = i.into();
-                invoice_coll.insert_one(invoice, None)
-                    .await
-                    .ok();
+                match invoice_coll.insert_one(invoice.clone(), None).await {
+                    Ok(_) => { info!("Inserted new invoice: {:?}", invoice) }
+                    Err(err) => { error!("Error inserting invoice - already exists? {:?}", err.kind) }
+                }
             }
             Err(e) => {
                 error!("Error while fetching invoice from lexoffice API: {:?}", e);
@@ -55,13 +59,10 @@ pub async fn sync_invoices(api_config: &Configuration, db: &Database) -> mongodb
         sleep(Duration::from_millis(500)).await;
     }
 
-    let mut cursor = invoice_coll.find(
-        doc! { "voucher_status": "paid" },
-        None
-    ).await?;
-    while let Some(doc) = cursor.try_next().await? {
-        println!("Invoice Number: {:?}", doc.voucher_number);
-    }
+    let doc_count_after = invoice_coll.count_documents(doc! { "voucher_status": "paid" }, None)
+        .await?;
+    println!("Collection contains {} documents", doc_count_after);
+    println!(">>> Inserted {} documents!", doc_count_after-doc_count_before);
 
     Ok(())
 }
@@ -73,26 +74,6 @@ pub async fn connect(connection_string: &str, db_name: &str) -> mongodb::error::
     Ok(database)
 }
 
-async fn insert_invoices(db: &Database, voucher_list: VoucherList) -> mongodb::error::Result<()> {
-    let my_coll: Collection<VoucherlistVoucher> = db
-        .collection("invoices");
-
-    for mut voucher in voucher_list.content {
-        println!("Voucher: {:?}", voucher);
-        my_coll.insert_one(voucher, None)
-            .await?;
-    }
-
-    let mut cursor = my_coll.find(
-        doc! { "voucherStatus": "paid" },
-        None
-    ).await?;
-    while let Some(doc) = cursor.try_next().await? {
-        println!("Voucher status: {:?}", doc.voucher_status);
-    }
-
-    Ok(())
-}
 pub async fn test(db: &Database, collection_name: &str) -> mongodb::error::Result<()> {
     let my_coll: Collection<Document> = db.collection(collection_name);
 
