@@ -1,17 +1,15 @@
 use std::time::Duration;
-use futures::{StreamExt, TryStreamExt};
+use chrono::{DateTime, Utc};
 use log::{error, info};
 use mongodb::{Client, Collection, Database};
-use mongodb::bson::{doc, Document};
-use mongodb::options::{InsertOneOptions, WriteConcern};
+use mongodb::bson::doc;
 use tokio::time::sleep;
 use openapi::apis::configuration::Configuration;
-use openapi::apis::{Error, vouchers_api};
-use openapi::models::{VoucherList, VoucherlistVoucher};
-use lexoffice_models::{Invoice, Product, Address, LineItem, INVOICES_COLLECTION_NAME};
-use openapi::apis::invoices_api::{invoices_id_get, InvoicesIdGetError};
+use openapi::apis::vouchers_api;
+use lexoffice_models::{Invoice, INVOICES_COLLECTION_NAME};
+use openapi::apis::invoices_api::invoices_id_get;
 
-pub async fn sync_invoices(api_config: &Configuration, db: &Database) -> mongodb::error::Result<()> {
+pub async fn sync_invoices(api_config: &Configuration, db: &Database, from_date: Option<DateTime<Utc>>, to_date: Option<DateTime<Utc>>) -> mongodb::error::Result<()> {
     let invoice_coll: Collection<Invoice> = db
         .collection(INVOICES_COLLECTION_NAME);
     let doc_count_before = invoice_coll.count_documents(doc! { "voucher_status": "paid" }, None)
@@ -24,23 +22,23 @@ pub async fn sync_invoices(api_config: &Configuration, db: &Database) -> mongodb
         "any",
         None,
         None,
+        from_date.map(|date| format!("{}", date.format("%Y-%m-%d"))),
+        to_date.map(|date| format!("{}", date.format("%Y-%m-%d"))),
         None,
         None,
         None,
         None,
         None,
-        None,
-        None,
-        Some(1),
-        Some(50),
+        Some(0),
+        Some(250),
         Some("voucherDate,DESC"),
     )
         .await
         .expect("Error getting voucherlist");
 
-    // TODO: For testing take only a slice
-    for mut voucher in &voucher_list.content.to_vec()[..3] {
-        info!("Syncing voucher: {}", voucher.id);
+    info!("Syncing {} invoices...", voucher_list.content.len());
+    for voucher in voucher_list.content {
+        info!("Syncing invoice: ID={}, Number={}, Date={}", voucher.id, voucher.voucher_number, voucher.voucher_date);
         let invoice = invoices_id_get(api_config, voucher.id.to_string().as_str())
             .await;
         match invoice {
@@ -49,7 +47,7 @@ pub async fn sync_invoices(api_config: &Configuration, db: &Database) -> mongodb
                 // TODO: For testing delete old entry first
                 invoice_coll.delete_one(doc! { "voucher_number": i.voucher_number }, None).await?;
                 match invoice_coll.insert_one(invoice.clone(), None).await {
-                    Ok(_) => { info!("Inserted new invoice: {:?}", invoice) }
+                    Ok(_) => { info!("Inserted new invoice: {}", invoice.voucher_number) }
                     Err(err) => { error!("Error inserting invoice - already exists? {:?}", err.kind) }
                 }
             }

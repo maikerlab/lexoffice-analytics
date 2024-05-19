@@ -13,6 +13,7 @@ dotenvy = "0.15"
 simple_logger = {version = "4.3.3", features = ["stderr"]}
 log = "0.4.20"
 clap = { version = "4.4.14", features = ["cargo"] }
+chrono = "0.4.38"
 
 [dependencies.mongodb]
 version = "2.8.2"

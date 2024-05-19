@@ -1,19 +1,18 @@
 mod sync;
 
 use std::env;
+use chrono::{DateTime, ParseResult, Utc};
 use clap::{arg, command, Command};
 use dotenvy::dotenv;
-use futures::{StreamExt, TryStreamExt};
 use log::info;
-use mongodb::{Collection, Database};
-use mongodb::bson::doc;
-use mongodb::options::InsertOneOptions;
-use serde::{Deserialize, Serialize};
 use simple_logger::SimpleLogger;
 use openapi::apis::configuration::Configuration;
-use openapi::apis::vouchers_api;
-use openapi::models::{Voucher, VoucherList, VoucherlistVoucher};
 use crate::sync::{connect, sync_invoices};
+
+fn parse_date_string(date_str: String) -> ParseResult<DateTime<Utc>> {
+    let result = DateTime::parse_from_str(format!("{} 00:00:00.000 +0000", date_str).as_str(), "%Y-%m-%d %H:%M:%S%.3f %z")?;
+    Ok(result.to_utc())
+}
 
 #[tokio::main]
 async fn main() {
@@ -32,12 +31,11 @@ async fn main() {
         .subcommand(
             Command::new("sync")
                 .about("Sync a voucher type or all vouchers stored at lexoffice")
-                .arg(arg!([VOUCHER_TYPE]).required(false).default_value("all")),
-        )
-        .subcommand(
-            Command::new("show")
-                .about("Show locally stored data")
-                .arg(arg!([VOUCHER_TYPE]).required(false).default_value("all")),
+                .args(&[
+                    arg!([VOUCHER_TYPE]).required(false).default_value("all"),
+                    arg!(--from <FROM_DATE> "start date").required(false),
+                    arg!(--to <TO_DATE> "end date").required(false)
+                ])
         )
         .get_matches();
 
@@ -47,6 +45,16 @@ async fn main() {
                 .get_one::<String>("VOUCHER_TYPE")
                 .unwrap()
                 .to_string();
+            let from_date = sub_matches.get_one::<String>("from")
+                .map(|from_str|
+                    parse_date_string(from_str.to_string())
+                        .expect("Failed to parse 'from' date")
+                );
+            let to_date = sub_matches.get_one::<String>("to")
+                .map(|to_str|
+                    parse_date_string(to_str.to_string())
+                        .expect("Failed to parse 'to' date")
+                );
             match types_arg.as_str() {
                 "all" => {
                     sync_vouchers(Vec::from([
@@ -60,10 +68,10 @@ async fn main() {
                         "orderconfirmation".to_string(),
                         "quotation".to_string(),
                         "deliverynote".to_string(),
-                    ])).await;
+                    ]), from_date, to_date).await;
                 }
                 "invoices" => {
-                    sync_vouchers(Vec::from(["invoice".to_string()])).await;
+                    sync_vouchers(Vec::from(["invoice".to_string()]), from_date, to_date).await;
                 }
                 _ => unreachable!(
                     "Unknown or unsupported argument for voucher types: {}",
@@ -71,18 +79,11 @@ async fn main() {
                 ),
             }
         }
-        Some(("show", sub_matches)) => {
-            let types_arg = sub_matches
-                .get_one::<String>("VOUCHER_TYPE")
-                .unwrap()
-                .to_string();
-            show_vouchers(Vec::from([types_arg.clone()])).await;
-        }
         _ => unreachable!("Cannot parse subcommand"),
     };
 }
 
-async fn sync_vouchers(voucher_types: Vec<String>) {
+async fn sync_vouchers(voucher_types: Vec<String>, from_date: Option<DateTime<Utc>>, to_date: Option<DateTime<Utc>>) {
     info!("Syncing voucher types: {:?}\n", voucher_types);
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let api_key = env::var("LEXOFFICE_APIKEY").expect("LEXOFFICE_APIKEY must be set");
@@ -98,11 +99,7 @@ async fn sync_vouchers(voucher_types: Vec<String>) {
     let mut api_config = Configuration::default();
     api_config.bearer_access_token = Some(api_key);
 
-    sync_invoices(&api_config, &db)
+    sync_invoices(&api_config, &db, from_date, to_date)
         .await
         .expect("error syncing invoices");
-}
-
-async fn show_vouchers(voucher_types: Vec<String>) {
-    info!("Showing vouchers: {:?}\n", voucher_types);
 }
