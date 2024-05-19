@@ -1,4 +1,3 @@
-use std::net::Shutdown::Write;
 use std::time::Duration;
 use futures::{StreamExt, TryStreamExt};
 use log::{error, info};
@@ -40,13 +39,15 @@ pub async fn sync_invoices(api_config: &Configuration, db: &Database) -> mongodb
         .expect("Error getting voucherlist");
 
     // TODO: For testing take only a slice
-    for mut voucher in &voucher_list.content.to_vec()[..10] {
+    for mut voucher in &voucher_list.content.to_vec()[..3] {
         info!("Syncing voucher: {}", voucher.id);
         let invoice = invoices_id_get(api_config, voucher.id.to_string().as_str())
             .await;
         match invoice {
             Ok(i) => {
-                let invoice: Invoice = i.into();
+                let invoice: Invoice = i.clone().into();
+                // TODO: For testing delete old entry first
+                invoice_coll.delete_one(doc! { "voucher_number": i.voucher_number }, None).await?;
                 match invoice_coll.insert_one(invoice.clone(), None).await {
                     Ok(_) => { info!("Inserted new invoice: {:?}", invoice) }
                     Err(err) => { error!("Error inserting invoice - already exists? {:?}", err.kind) }
@@ -72,15 +73,4 @@ pub async fn connect(connection_string: &str, db_name: &str) -> mongodb::error::
     let client = Client::with_uri_str(connection_string.to_string()).await?;
     let database = client.database(db_name);
     Ok(database)
-}
-
-pub async fn test(db: &Database, collection_name: &str) -> mongodb::error::Result<()> {
-    let my_coll: Collection<Document> = db.collection(collection_name);
-
-    // Find a movie based on the title value
-    let my_movie = my_coll.find_one(doc! { "title": "The Perils of Pauline" }, None).await?;
-
-    // Print the document
-    println!("Found a movie:\n{:#?}", my_movie);
-    Ok(())
 }

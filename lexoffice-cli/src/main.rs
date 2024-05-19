@@ -13,7 +13,7 @@ use simple_logger::SimpleLogger;
 use openapi::apis::configuration::Configuration;
 use openapi::apis::vouchers_api;
 use openapi::models::{Voucher, VoucherList, VoucherlistVoucher};
-use crate::sync::{connect, sync_invoices, test};
+use crate::sync::{connect, sync_invoices};
 
 #[tokio::main]
 async fn main() {
@@ -83,7 +83,7 @@ async fn main() {
 }
 
 async fn sync_vouchers(voucher_types: Vec<String>) {
-    info!("Syncing vouchers: {:?}\n", voucher_types);
+    info!("Syncing voucher types: {:?}\n", voucher_types);
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let api_key = env::var("LEXOFFICE_APIKEY").expect("LEXOFFICE_APIKEY must be set");
 
