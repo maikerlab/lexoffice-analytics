@@ -1,13 +1,32 @@
 mod sync;
 
 use std::env;
+use std::fmt::{Display, Formatter};
 use chrono::{DateTime, ParseResult, Utc};
 use clap::{arg, command, Command};
 use dotenvy::dotenv;
 use log::info;
+use mongodb::error::ErrorKind;
 use simple_logger::SimpleLogger;
 use openapi::apis::configuration::Configuration;
 use crate::sync::{connect, sync_invoices};
+
+#[derive(Debug)]
+pub enum MyError {
+    LexofficeApiError(String),
+    MongoDbError(String, ErrorKind)
+}
+
+impl Display for MyError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            MyError::LexofficeApiError(msg) => write!(f, "Lexoffice API Error: {}", msg),
+            MyError::MongoDbError(msg, kind) => write!(f, "MongoDB Error: {} - {:?}", msg, kind),
+        }
+    }
+}
+
+impl std::error::Error for MyError {}
 
 fn parse_date_string(date_str: String) -> ParseResult<DateTime<Utc>> {
     let result = DateTime::parse_from_str(format!("{} 00:00:00.000 +0000", date_str).as_str(), "%Y-%m-%d %H:%M:%S%.3f %z")?;
