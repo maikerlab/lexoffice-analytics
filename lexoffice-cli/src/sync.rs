@@ -41,6 +41,7 @@ pub async fn sync_invoices(client: &LexofficeClient, db: &Database, from_date: O
 
         debug!("Syncing {} invoices of page no. {}...", voucher_list.content.len(), current_page);
         if progress_bar.is_none() {
+            info!("Total no. of invoices: {}", voucher_list.total_elements);
             progress_bar = Some(ProgressBar::new(voucher_list.total_elements as u64));
         }
 

@@ -22,9 +22,11 @@ struct LexofficeClient {
 }
 
 impl LexofficeClient {
-    pub fn new(config: Configuration, max_api_calls_per_second: usize) -> Self {
+    pub fn new(api_key: String, max_api_calls_per_second: usize) -> Self {
+        let mut api_config = Configuration::default();
+        api_config.bearer_access_token = Some(api_key);
         Self {
-            config,
+            config: api_config,
             limiter: RateLimiter::builder()
                 .initial(max_api_calls_per_second)
                 .interval(Duration::from_secs(1))
@@ -128,6 +130,7 @@ async fn main() {
 
 async fn sync_vouchers(voucher_types: Vec<String>, from_date: Option<DateTime<Utc>>, to_date: Option<DateTime<Utc>>) {
     info!("Syncing voucher types: {}", voucher_types.join(", ").bright_yellow());
+
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let api_key = env::var("LEXOFFICE_APIKEY").expect("LEXOFFICE_APIKEY must be set");
 
@@ -136,11 +139,8 @@ async fn sync_vouchers(voucher_types: Vec<String>, from_date: Option<DateTime<Ut
         .await
         .expect("Connection failed!");
 
-    let mut api_config = Configuration::default();
-    api_config.bearer_access_token = Some(api_key);
-
-    // max. 2 API calls per second allowed
-    let client = LexofficeClient::new(api_config, 2);
+    // Init Client with API Key and max. 2 API calls per second allowed
+    let client = LexofficeClient::new(api_key, 2);
 
     sync_invoices(&client, &db, from_date, to_date)
         .await
