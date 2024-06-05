@@ -2,22 +2,41 @@ mod sync;
 
 use std::env;
 use std::fmt::{Display, Formatter};
+use std::time::Duration;
 use chrono::{DateTime, ParseResult, Utc};
 use clap::{arg, command, Command};
 use colored::Colorize;
 use dotenvy::dotenv;
 use indicatif::MultiProgress;
 use indicatif_log_bridge::LogWrapper;
+use leaky_bucket::RateLimiter;
 use log::info;
 use mongodb::error::ErrorKind;
 use simple_logger::SimpleLogger;
 use openapi::apis::configuration::Configuration;
-use crate::sync::{connect, sync_invoices};
+use crate::sync::{connect_db, sync_invoices};
+
+struct LexofficeClient {
+    config: Configuration,
+    limiter: RateLimiter,
+}
+
+impl LexofficeClient {
+    pub fn new(config: Configuration, max_api_calls_per_second: usize) -> Self {
+        Self {
+            config,
+            limiter: RateLimiter::builder()
+                .initial(max_api_calls_per_second)
+                .interval(Duration::from_secs(1))
+                .build(),
+        }
+    }
+}
 
 #[derive(Debug)]
 pub enum MyError {
     LexofficeApiError(String),
-    MongoDbError(String, ErrorKind)
+    MongoDbError(String, ErrorKind),
 }
 
 impl Display for MyError {
@@ -108,19 +127,22 @@ async fn main() {
 }
 
 async fn sync_vouchers(voucher_types: Vec<String>, from_date: Option<DateTime<Utc>>, to_date: Option<DateTime<Utc>>) {
-    info!("Syncing voucher types: {}", voucher_types.join(", ").yellow());
+    info!("Syncing voucher types: {}", voucher_types.join(", ").bright_yellow());
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let api_key = env::var("LEXOFFICE_APIKEY").expect("LEXOFFICE_APIKEY must be set");
 
     // Connect to DB and get handle
-    let db = connect(db_url.as_str(), "lexoffices")
+    let db = connect_db(db_url.as_str(), "lexoffice")
         .await
         .expect("Connection failed!");
 
     let mut api_config = Configuration::default();
     api_config.bearer_access_token = Some(api_key);
 
-    sync_invoices(&api_config, &db, from_date, to_date)
+    // max. 2 API calls per second allowed
+    let client = LexofficeClient::new(api_config, 2);
+
+    sync_invoices(&client, &db, from_date, to_date)
         .await
         .expect("error syncing invoices");
 }

@@ -1,18 +1,15 @@
-use std::time::Duration;
 use chrono::{DateTime, Utc};
 use futures::TryFutureExt;
 use indicatif::ProgressBar;
 use log::{debug, info};
 use mongodb::{Client, Collection, Database};
 use mongodb::bson::doc;
-use tokio::time::sleep;
-use openapi::apis::configuration::Configuration;
-use openapi::apis::vouchers_api;
 use lexoffice_models::{Invoice, INVOICES_COLLECTION_NAME};
 use openapi::apis::invoices_api::invoices_id_get;
-use crate::MyError;
+use openapi::apis::vouchers_api::voucherlist_get;
+use crate::{LexofficeClient, MyError};
 
-pub async fn sync_invoices(api_config: &Configuration, db: &Database, from_date: Option<DateTime<Utc>>, to_date: Option<DateTime<Utc>>) -> Result<(), MyError> {
+pub async fn sync_invoices(client: &LexofficeClient, db: &Database, from_date: Option<DateTime<Utc>>, to_date: Option<DateTime<Utc>>) -> Result<(), MyError> {
     let invoice_coll: Collection<Invoice> = db
         .collection(INVOICES_COLLECTION_NAME);
     let doc_count_before = invoice_coll.count_documents(doc! { }, None)
@@ -23,8 +20,9 @@ pub async fn sync_invoices(api_config: &Configuration, db: &Database, from_date:
     let mut current_page = 0;
     let mut progress_bar: Option<ProgressBar> = None;
     loop {
-        let voucher_list = vouchers_api::voucherlist_get(
-            api_config,
+        client.limiter.acquire(1).await;
+        let voucher_list = voucherlist_get(
+            &client.config,
             "invoice",
             "any",
             None,
@@ -48,7 +46,8 @@ pub async fn sync_invoices(api_config: &Configuration, db: &Database, from_date:
 
         // Sync all invoices of current page
         for voucher in voucher_list.content {
-            let lexoffice_invoice = invoices_id_get(api_config, voucher.id.to_string().as_str())
+            client.limiter.acquire(1).await;
+            let lexoffice_invoice = invoices_id_get(&client.config, voucher.id.to_string().as_str())
                 .await
                 .map_err(|_| MyError::LexofficeApiError("Error while fetching invoice from lexoffice API".to_string()))?;
             let invoice: Invoice = lexoffice_invoice.clone().into();
@@ -63,8 +62,6 @@ pub async fn sync_invoices(api_config: &Configuration, db: &Database, from_date:
             debug!("Inserted invoice: ID={}, Number={}, Date={}", voucher.id, voucher.voucher_number, voucher.voucher_date);
 
             if let Some(ref pb) = progress_bar { pb.inc(1); }
-
-            sleep(Duration::from_millis(500)).await;
         }
 
         // If this is the last page, we are done!
@@ -87,7 +84,7 @@ pub async fn sync_invoices(api_config: &Configuration, db: &Database, from_date:
     Ok(())
 }
 
-pub async fn connect(connection_string: &str, db_name: &str) -> mongodb::error::Result<Database> {
+pub async fn connect_db(connection_string: &str, db_name: &str) -> mongodb::error::Result<Database> {
     // Create a new client and connect to the server
     let client = Client::with_uri_str(connection_string.to_string()).await?;
     let database = client.database(db_name);
