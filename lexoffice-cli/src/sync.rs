@@ -1,6 +1,7 @@
 use std::time::Duration;
 use chrono::{DateTime, Utc};
 use futures::TryFutureExt;
+use indicatif::ProgressBar;
 use log::{debug, info};
 use mongodb::{Client, Collection, Database};
 use mongodb::bson::doc;
@@ -20,6 +21,7 @@ pub async fn sync_invoices(api_config: &Configuration, db: &Database, from_date:
     debug!("Before sync: Collection contains {} documents", doc_count_before);
 
     let mut current_page = 0;
+    let mut progress_bar: Option<ProgressBar> = None;
     loop {
         let voucher_list = vouchers_api::voucherlist_get(
             api_config,
@@ -37,11 +39,14 @@ pub async fn sync_invoices(api_config: &Configuration, db: &Database, from_date:
             Some(current_page),
             Some(250),
             Some("voucherDate,ASC"),
-        )
-            .await
-            .map_err(|err| MyError::LexofficeApiError(err.to_string()))?;
+        ).await.map_err(|err| MyError::LexofficeApiError(err.to_string()))?;
 
-        info!("Syncing {} invoices...", voucher_list.content.len());
+        debug!("Syncing {} invoices of page no. {}...", voucher_list.content.len(), current_page);
+        if progress_bar.is_none() {
+            progress_bar = Some(ProgressBar::new(voucher_list.total_elements as u64));
+        }
+
+        // Sync all invoices of current page
         for voucher in voucher_list.content {
             let lexoffice_invoice = invoices_id_get(api_config, voucher.id.to_string().as_str())
                 .await
@@ -49,21 +54,28 @@ pub async fn sync_invoices(api_config: &Configuration, db: &Database, from_date:
             let invoice: Invoice = lexoffice_invoice.clone().into();
 
             // TODO: For testing delete old entry first
-            invoice_coll.delete_one(doc! { "voucher_number": lexoffice_invoice.voucher_number }, None).await.map_err(|err| MyError::MongoDbError("Error deleting old entry".to_string(), *err.kind))?;
-            debug!("Deleted old entry");
+            let _ = invoice_coll.delete_one(doc! { "voucher_number": &lexoffice_invoice.voucher_number }, None).await;
+            debug!("Deleted invoice {}", &lexoffice_invoice.voucher_number);
 
             invoice_coll.insert_one(invoice.clone(), None)
                 .await
                 .map_err(|err| MyError::MongoDbError("Error inserting invoice".to_string(), *err.kind))?;
-            info!("Inserted invoice: ID={}, Number={}, Date={}", voucher.id, voucher.voucher_number, voucher.voucher_date);
+            debug!("Inserted invoice: ID={}, Number={}, Date={}", voucher.id, voucher.voucher_number, voucher.voucher_date);
+
+            if let Some(ref pb) = progress_bar { pb.inc(1); }
+
             sleep(Duration::from_millis(500)).await;
         }
 
+        // If this is the last page, we are done!
         if voucher_list.last {
             break;
         }
+        // Fetch next page...
         current_page += 1;
     }
+
+    if let Some(ref pb) = progress_bar { pb.finish_and_clear(); }
 
     let doc_count_after = invoice_coll.count_documents(doc! { }, None)
         .await

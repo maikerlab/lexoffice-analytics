@@ -14,6 +14,9 @@ simple_logger = {version = "4.3.3", features = ["stderr"]}
 log = "0.4.20"
 clap = { version = "4.4.14", features = ["cargo"] }
 chrono = "0.4.38"
+indicatif-log-bridge = "0.2.2"
+indicatif = "0.17.8"
+colored = "2.1.0"
 
 [dependencies.mongodb]
 version = "2.8.2"

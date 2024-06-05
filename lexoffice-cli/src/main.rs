@@ -4,7 +4,10 @@ use std::env;
 use std::fmt::{Display, Formatter};
 use chrono::{DateTime, ParseResult, Utc};
 use clap::{arg, command, Command};
+use colored::Colorize;
 use dotenvy::dotenv;
+use indicatif::MultiProgress;
+use indicatif_log_bridge::LogWrapper;
 use log::info;
 use mongodb::error::ErrorKind;
 use simple_logger::SimpleLogger;
@@ -37,10 +40,12 @@ fn parse_date_string(date_str: String) -> ParseResult<DateTime<Utc>> {
 async fn main() {
     dotenv().ok();
 
-    SimpleLogger::new()
+    let logger = SimpleLogger::new()
         .with_colors(true)
-        .with_level(log::LevelFilter::Info)
-        .init()
+        .with_level(log::LevelFilter::Info);
+    let multi = MultiProgress::new();
+    LogWrapper::new(multi.clone(), logger)
+        .try_init()
         .unwrap();
 
     let matches = command!()
@@ -77,11 +82,11 @@ async fn main() {
             match types_arg.as_str() {
                 "all" => {
                     sync_vouchers(Vec::from([
+                        "invoice".to_string(),
                         "salesinvoice".to_string(),
                         "salescreditnote".to_string(),
                         "purchaseinvoice".to_string(),
                         "purchasecreditnote".to_string(),
-                        "invoice".to_string(),
                         "downpaymentinvoice".to_string(),
                         "creditnote".to_string(),
                         "orderconfirmation".to_string(),
@@ -103,15 +108,12 @@ async fn main() {
 }
 
 async fn sync_vouchers(voucher_types: Vec<String>, from_date: Option<DateTime<Utc>>, to_date: Option<DateTime<Utc>>) {
-    info!("Syncing voucher types: {:?}\n", voucher_types);
+    info!("Syncing voucher types: {}", voucher_types.join(", ").yellow());
     let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let api_key = env::var("LEXOFFICE_APIKEY").expect("LEXOFFICE_APIKEY must be set");
 
-    // Get connection string
-    let db_name = "lexoffice";
-
     // Connect to DB and get handle
-    let db = connect(db_url.as_str(), db_name)
+    let db = connect(db_url.as_str(), "lexoffices")
         .await
         .expect("Connection failed!");
 
