@@ -14,14 +14,17 @@ This project contains a Rust workspace with the following components:
 
 ## lexoffice-cli
 
-The `lexoffice-cli` can be run inside a Docker container. To do that, simply use the [Dockerfile](lexoffice-cli/Dockerfile) or run with `docker compose up`.
+When running the CLI, the following environment variables are expected to be set:
 
-When running the application, the following environment variables are expected to be set:
-
-- `DATABASE_URL`: MongoDB connection string (`mongodb://[user]:[password]@[host]:[port]/[connection options]`)
+- `DATABASE_URL`: Connection string to your MongoDB instance (`mongodb://[user]:[password]@[host]:[port]/[connection options]`)
 - `LEXOFFICE_APIKEY`: API Key for Lexoffice account (create one [here](https://app.lexoffice.de/addons/public-api))
 
-**Usage:**
+### Usage
+
+The following subcommands are supported at the moment:
+
+- `sync`: Fetch vouchers from lexoffice and save them into MongoDB
+- `help`: Show help for usage of the CLI
 
 ```shell
 $ lexoffice-cli sync <VOUCHER_TYPE> --from <FROM_DATE> --to <TO_DATE>
@@ -30,9 +33,9 @@ $ lexoffice-cli sync <VOUCHER_TYPE> --from <FROM_DATE> --to <TO_DATE>
 The argument `VOUCHER_TYPE` is optional and currently supports:
 
 - `all`
-- `invoice`
+- `invoices`
 
-If `VOUCHER_TYPE` is not provided, all voucher types will be updated.
+If `VOUCHER_TYPE` is not provided, all voucher types will be synced.
 
 A specific date range can be provided with the optional arguments `--from` and `--to` in the format `YYYY-MM-DD`.
 If only one is provided, the maximum start/end date will be used for the other argument.
@@ -49,3 +52,12 @@ $ npm install
 $ npm run generate
 ```
 
+## Run in Docker
+
+For the current state of the CLI application, it's kind of pointless to run it in Docker, but the idea is that it could be extended, e.g. to expose an API to a Web App, from where synchronizing data could be triggered and the stored data could be visualized or even be edited/extended.
+However, running in Docker gives you the benefit to self-host your MongoDB instance.
+
+For the `db` Service, you need to set the environment variables `MONGO_INITDB_ROOT_USERNAME` and `MONGO_INITDB_ROOT_PASSWORD` and then modify your MongoDB connection string (`DATABASE_URL`), containing the correct authentication credentials.
+
+Then simply run `docker-compose up db` and interact with the MongoDB container by running commands from the `cli` service, e.g.:
+`docker-compose run cli sync invoices`.
