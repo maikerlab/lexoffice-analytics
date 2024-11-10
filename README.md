@@ -27,7 +27,7 @@ The following subcommands are supported at the moment:
 - `help`: Show help for usage of the CLI
 
 ```shell
-$ lexoffice-cli sync <VOUCHER_TYPE> --from <FROM_DATE> --to <TO_DATE>
+$ cargo run -- sync <VOUCHER_TYPE> --from <FROM_DATE> --to <TO_DATE>
 ```
 
 The argument `VOUCHER_TYPE` is optional and currently supports:

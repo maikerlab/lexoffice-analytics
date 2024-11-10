@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 lexoffice-models = { path = "../lexoffice-models" }
 tokio = {version = "1.32.0", features = ["full"]}
-openapi = { path = "../openapi" }
+lexoffice_api = { git = "https://github.com/maikerlab/lexoffice_api_rs.git" }
 serde = "1.0.188"
 futures = "0.3.28"
 dotenvy = "0.15"
@@ -18,6 +18,8 @@ indicatif-log-bridge = "0.2.2"
 indicatif = "0.17.8"
 colored = "2.1.0"
 leaky-bucket = "1.1.2"
+warp = "0.3.7"
+once_cell = "1.19.0"
 
 [dependencies.mongodb]
 version = "2.8.2"

@@ -1,8 +1,0 @@
-{
-  "scripts": {
-    "generate": "openapi-generator-cli generate -i lexoffice-api.yml -g rust -o openapi --additional-properties=packageVersion=1.0.0"
-  },
-  "devDependencies": {
-    "@openapitools/openapi-generator-cli": "^2.13.4"
-  }
-}

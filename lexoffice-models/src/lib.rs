@@ -1,8 +1,8 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use openapi::models::invoice::Invoice as LexofficeInvoice;
-use openapi::models::{
+use lexoffice_api::models::invoice::Invoice as LexofficeInvoice;
+use lexoffice_api::models::{
     LineItem as LexofficeLineItem,
     VoucherAddress as LexofficeVoucherAddress,
     VoucherlistVoucher as LexofficeVoucherlistVoucher
@@ -195,11 +195,11 @@ impl Into<Invoice> for LexofficeInvoice {
 #[cfg(test)]
 mod test {
     use uuid::Uuid;
-    use openapi::models::voucherlist_voucher::{Currency, VoucherStatus, VoucherType};
-    use openapi::models::invoice::VoucherStatus as InvoiceStatus;
-    use openapi::models::total_price::Currency as TotalPriceCurrency;
-    use openapi::models::{TotalPrice, VoucherlistVoucher};
-    use openapi::models::line_item::Type;
+    use lexoffice_api::models::voucherlist_voucher::{Currency, VoucherStatus, VoucherType};
+    use lexoffice_api::models::invoice::VoucherStatus as InvoiceStatus;
+    use lexoffice_api::models::total_price::Currency as TotalPriceCurrency;
+    use lexoffice_api::models::{TotalPrice, VoucherlistVoucher};
+    use lexoffice_api::models::line_item::Type;
     use super::*;
 
     #[test]

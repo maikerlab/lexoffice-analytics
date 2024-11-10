@@ -1,9 +1,13 @@
 mod sync;
+mod api;
+mod utils;
 
 use std::env;
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
+use std::str::FromStr;
+use std::sync::Arc;
 use std::time::Duration;
-use chrono::{DateTime, ParseResult, Utc};
+use chrono::{DateTime, Utc};
 use clap::{arg, command, Command};
 use colored::Colorize;
 use dotenvy::dotenv;
@@ -11,10 +15,13 @@ use indicatif::MultiProgress;
 use indicatif_log_bridge::LogWrapper;
 use leaky_bucket::RateLimiter;
 use log::info;
+use mongodb::Database;
 use mongodb::error::ErrorKind;
+use once_cell::sync::OnceCell;
 use simple_logger::SimpleLogger;
-use openapi::apis::configuration::Configuration;
+use lexoffice_api::apis::configuration::Configuration;
 use crate::sync::{connect_db, sync_invoices};
+use crate::utils::parse_date_string;
 
 struct LexofficeClient {
     config: Configuration,
@@ -35,6 +42,14 @@ impl LexofficeClient {
     }
 }
 
+impl Debug for LexofficeClient {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Lexoffice Client")
+    }
+}
+static LEXOFFICE_CLIENT: OnceCell<Arc<LexofficeClient>> = OnceCell::new();
+static DATABASE: OnceCell<Arc<Database>> = OnceCell::new();
+
 #[derive(Debug)]
 pub enum MyError {
     LexofficeApiError(String),
@@ -52,9 +67,20 @@ impl Display for MyError {
 
 impl std::error::Error for MyError {}
 
-fn parse_date_string(date_str: String) -> ParseResult<DateTime<Utc>> {
-    let result = DateTime::parse_from_str(format!("{} 00:00:00.000 +0000", date_str).as_str(), "%Y-%m-%d %H:%M:%S%.3f %z")?;
-    Ok(result.to_utc())
+async fn init() {
+    // Init Client with API Key and max. 2 API calls per second allowed
+    let api_key = env::var("LEXOFFICE_APIKEY").expect("LEXOFFICE_APIKEY must be set");
+    let client = LexofficeClient::new(api_key, 2);
+    LEXOFFICE_CLIENT.set(Arc::new(client)).expect("Error initializing Lexoffice Client");
+
+    // Connect to DB and get handle
+    let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+    let db = connect_db(db_url.as_str(), "lexoffice")
+        .await
+        .expect("Connection failed!");
+    DATABASE.set(Arc::new(db)).expect("Error initializing Database");
+
+    info!("Lexoffice and Database successfully initialized");
 }
 
 #[tokio::main]
@@ -69,6 +95,8 @@ async fn main() {
         .try_init()
         .unwrap();
 
+    init().await;
+
     let matches = command!()
         .propagate_version(true)
         .subcommand_required(true)
@@ -80,6 +108,13 @@ async fn main() {
                     arg!([VOUCHER_TYPE]).required(false).default_value("all"),
                     arg!(--from <FROM_DATE> "start date").required(false),
                     arg!(--to <TO_DATE> "end date").required(false)
+                ])
+        )
+        .subcommand(
+            Command::new("run")
+                .about("Runs the API")
+                .args(&[
+                    arg!([PORT]).required(false).default_value("8000")
                 ])
         )
         .get_matches();
@@ -124,6 +159,14 @@ async fn main() {
                 ),
             }
         }
+        Some(("run", sub_matches)) => {
+            let port = sub_matches
+                .get_one::<String>("PORT")
+                .map(|port_str|
+                    u16::from_str(port_str.as_str()).expect("Error parsing port")
+                ).expect("Error getting port");
+            api::run(port).await;
+        },
         _ => unreachable!("Cannot parse subcommand"),
     };
 }
@@ -131,18 +174,10 @@ async fn main() {
 async fn sync_vouchers(voucher_types: Vec<String>, from_date: Option<DateTime<Utc>>, to_date: Option<DateTime<Utc>>) {
     info!("Syncing voucher types: {}", voucher_types.join(", ").bright_yellow());
 
-    let db_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let api_key = env::var("LEXOFFICE_APIKEY").expect("LEXOFFICE_APIKEY must be set");
+    let client = LEXOFFICE_CLIENT.get().expect("Client not initialized");
+    let db = DATABASE.get().expect("Database not initialized");
 
-    // Connect to DB and get handle
-    let db = connect_db(db_url.as_str(), "lexoffice")
-        .await
-        .expect("Connection failed!");
-
-    // Init Client with API Key and max. 2 API calls per second allowed
-    let client = LexofficeClient::new(api_key, 2);
-
-    sync_invoices(&client, &db, from_date, to_date)
+    sync_invoices(client.clone(), db.clone(), from_date, to_date)
         .await
         .expect("error syncing invoices");
 }

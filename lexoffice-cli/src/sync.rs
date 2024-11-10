@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use chrono::{DateTime, Utc};
 use futures::TryFutureExt;
 use indicatif::ProgressBar;
@@ -5,11 +6,11 @@ use log::{debug, info};
 use mongodb::{Client, Collection, Database};
 use mongodb::bson::doc;
 use lexoffice_models::{Invoice, INVOICES_COLLECTION_NAME};
-use openapi::apis::invoices_api::invoices_id_get;
-use openapi::apis::vouchers_api::voucherlist_get;
+use lexoffice_api::apis::invoices_api::invoices_id_get;
+use lexoffice_api::apis::vouchers_api::voucherlist_get;
 use crate::{LexofficeClient, MyError};
 
-pub async fn sync_invoices(client: &LexofficeClient, db: &Database, from_date: Option<DateTime<Utc>>, to_date: Option<DateTime<Utc>>) -> Result<(), MyError> {
+pub async fn sync_invoices(client: Arc<LexofficeClient>, db: Arc<Database>, from_date: Option<DateTime<Utc>>, to_date: Option<DateTime<Utc>>) -> Result<(), MyError> {
     let invoice_coll: Collection<Invoice> = db
         .collection(INVOICES_COLLECTION_NAME);
     let doc_count_before = invoice_coll.count_documents(doc! { }, None)
