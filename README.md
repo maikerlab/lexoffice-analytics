@@ -1,4 +1,4 @@
-# lexoffice Analytics
+# Lexoffice Analytics
 
 Save and visualize data from the [lexoffice Public API](https://developers.lexoffice.io/docs/#lexoffice-api-documentation).
 
