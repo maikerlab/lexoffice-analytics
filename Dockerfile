@@ -1,4 +1,4 @@
-FROM rust:1.78-bookworm AS builder
+FROM rust:1.82-bookworm AS builder
 WORKDIR /usr/src/lexoffice-analytics
 COPY . .
 RUN cargo install --path lexoffice-cli
