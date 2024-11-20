@@ -1,5 +1,6 @@
 [package]
 name = "lexoffice-models"
+description = "Models and mappings for mongodb"
 version = "0.1.0"
 edition = "2021"
 
