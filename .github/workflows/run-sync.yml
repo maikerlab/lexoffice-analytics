@@ -1,0 +1,19 @@
+name: Lexoffice Sync
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  run-sync:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t lexoffice-cli .
+
+      - name: Run Sync Job with CLI
+        run: docker run --rm -e DATABASE_URL="${{ secrets.DATABASE_URL }}" -e LEXOFFICE_APIKEY="${{ secrets.LEXOFFICE_APIKEY }}" lexoffice-cli sync
