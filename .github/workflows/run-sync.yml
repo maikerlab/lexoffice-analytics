@@ -2,6 +2,15 @@ name: Lexoffice Sync
 
 on:
   workflow_dispatch:
+    inputs:
+      from_date:
+        description: 'Sync starting from this date'
+        required: true
+        type: string
+      to_date:
+        description: 'Sync until this date'
+        required: true
+        type: string
 
 jobs:
 
@@ -16,4 +25,4 @@ jobs:
         run: docker build -t lexoffice-cli .
 
       - name: Run Sync Job with CLI
-        run: docker run --rm -e DATABASE_URL="${{ secrets.DATABASE_URL }}" -e LEXOFFICE_APIKEY="${{ secrets.LEXOFFICE_APIKEY }}" lexoffice-cli sync
+        run: docker run --rm -e DATABASE_URL="${{ secrets.DATABASE_URL }}" -e LEXOFFICE_APIKEY="${{ secrets.LEXOFFICE_APIKEY }}" lexoffice-cli sync --from ${{ inputs.from_date }} --to ${{ inputs.to_date }} 
